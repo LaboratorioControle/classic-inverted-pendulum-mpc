@@ -1,0 +1,36 @@
+dados.geral.g = 9.81;
+dados.pendulo.m = 0.2;        % [kg]    Massa da haste do pêndulo
+dados.pendulo.l = 1;        % [m]     Distância do ponto de fixação até o centro de gravidade
+dados.pendulo.I = 0.1;  % [kg·m^2] Momento de inércia da haste em relação ao centro 
+dados.carro.m = 2;         % [kg]    Massa do carro
+dados.geral.tau = 0.1;
+
+tau = dados.geral.tau;
+
+m0 = dados.carro.m;
+m1 = dados.pendulo.m;
+l = dados.pendulo.l;
+I = dados.pendulo.I;
+g = dados.geral.g;
+
+
+alpha1 = (m1*l)/(m1*l^2+I); beta1 = g*alpha1;
+alpha0 = m0+m1-alpha1*m1*l; beta0 = m1*l*beta1;
+
+% x = [theta theta_dot r r_dot]
+
+Ac = [0 1 0 0; ((alpha1*beta0)/alpha0)+beta1 0 0 0; 0 0 0 1
+                  -beta0/alpha0 0 0 0];
+
+Bc = [0; -alpha1/alpha0; 0; 1/alpha0];
+
+[A, B] = c2d(Ac,Bc,tau);
+
+C = [1 0 0 0
+     0 0 1 0];
+
+dados.planta.Ac = Ac; dados.planta.Bc = Bc; 
+dados.planta.A = A; dados.planta.B = B; dados.planta.C = C;
+
+clear alpha0 alpha1 beta0 beta1;
+clear A Ac B Bc C g l I m0 m1 tau;

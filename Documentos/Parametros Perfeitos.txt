@@ -1,0 +1,53 @@
+%% Modelo do sistema do pêndulo invertido
+
+clear; clc; %close all;
+
+%% Declaração das variáveis do sistema
+
+% ==============================
+% Dados gerais
+% ==============================
+dados.geral.g = 9.81;          % [m/s^2] Aceleração da gravidade
+dados.geral.Ts = 10/1000;       % [s] Período de amostragem
+dados.geral.Tf = 20;            % [s] Tempo total da simulação
+dados.geral.spt = 0;         % [cm] Posição desejada do carro
+dados.geral.angulo_troca = 5;         % [°] Ângulo para troca dos controladores
+dados.geral.guia = 0.60; % [m] Tamanho da guia linear
+
+% Condições Iniciais
+dados.geral.inicial.theta0 = 5;      % [°] Ângulo inicial
+dados.geral.inicial.theta_dot0 = 0;   % [°/s] Velocidade angular inicial
+dados.geral.inicial.x0 = 0;           % [m] Posição inicial do carro
+dados.geral.inicial.x_dot0 = 0;       % [m/s] Velocidade inicial do carro
+
+% ==============================
+% Dados do pêndulo
+% ==============================
+dados.pendulo.m = 20.5/1000;        % [kg]    Massa da haste do pêndulo
+dados.pendulo.l = 0.18;        % [m]     Distância do ponto de fixação até o centro de gravidade
+dados.pendulo.I = 0.000207;  % [kg·m^2] Momento de inércia da haste em relação ao centro
+dados.pendulo.b = 0.000008;   % [N·m·s] Coeficiente de amortecimento viscoso no eixo de fixação
+dados.pendulo.r_massa = 0.01; % [m] Raio da massa na ponta do pêndulo 
+dados.pendulo.E_des = 2*dados.pendulo.m*dados.geral.g*dados.pendulo.l; % [J] Energia Potencial Desejada do Pêndulo
+
+% ==============================
+% Dados do carro
+% ==============================
+dados.carro.m = 308.82/1000;         % [kg]    Massa do carro
+dados.carro.c = 6.0;          % [N·s/m] Coeficiente de amortecimento viscoso entre carro e guia
+dados.carro.l = 0.1;           % [m] Largura do carro
+dados.carro.h = 0.05;           % [m] Altura do carro
+
+% ==============================
+% Dados do motor
+% ==============================
+dados.motor.Rm = 10.5;         % [Ω]      Resistência do enrolamento (Chute)
+dados.motor.Kb = 0.04;         % [V·s/rad] Constante de força contra-eletromotriz (Chute)
+dados.motor.Kt = 0.175;         % [N·m/A]  Constante de torque (Torque/Corrente)
+dados.motor.R  = 0.071;         % [-]      Relação de transmissão (1/14)
+
+% ==============================
+% Atrito Seco
+% ==============================
+dados.carro.Fc = 0.035;      % N
+

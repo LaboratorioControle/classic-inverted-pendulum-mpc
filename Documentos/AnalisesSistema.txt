@@ -1,0 +1,28 @@
+%% Estabilidade do sistema
+% 
+% Poles = eig(planta.A);
+% fprintf("O sistema possui os seguintes polos\n")
+% disp(Poles);
+% fprintf("Nota-se que um dos polos está no semi plano direito, de modo que o sistema é instável");
+% 
+% clear Poles;
+
+%% Controlabilidade do sistema
+
+% matriz_controlabilidade = ctrb(planta.A, planta.B);
+% Rank = rank(matriz_controlabilidade);
+% fprintf("O posto da matriz é: ");
+% disp(Rank);
+% fprintf("ou seja, é possível controlar todos os estados do sistema.")
+% 
+% clear matriz_controlabilidade Rank;
+
+%% Observabilidade do sistema
+
+% matriz_observabilidade = obsv(planta.A, planta.C);
+% Rank = rank(matriz_observabilidade);
+% fprintf("\nO posto da matriz é: ");
+% disp(Rank);
+% fprintf("ou seja, é possível observar todos os estados do sistema.")
+% 
+% clear matriz_observabilidade Rank;

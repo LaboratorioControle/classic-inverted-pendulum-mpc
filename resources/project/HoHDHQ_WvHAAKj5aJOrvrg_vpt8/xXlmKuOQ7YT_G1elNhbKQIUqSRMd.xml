@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Info description="Este projeto foi desenvolvido como Trabalho de Conclusão de Curso (TCC) do curso de graduação de Mateus Henrique Teixeira.&#10;&#10;O trabalho consiste na implementação de um Controlador Preditivo Baseado em Modelo (MPC) aplicado ao estágio de estabilização da planta de pêndulo invertido. Para a fase de Swing-Up, é empregada uma estratégia de controle baseada em energia, utilizando uma abordagem simples e eficiente para levar o sistema à região de equilíbrio, onde o MPC assume o controle."/>
