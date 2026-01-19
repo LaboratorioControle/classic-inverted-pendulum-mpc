@@ -209,6 +209,11 @@ xlabel('Tempo [s]')
 ylabel('Tensão [V]')
 title('Sinal de Controle')
 
+%% Limpeza
 clear ang_inicial A B Bineq err exitflag;
 clear F i MPC nt nu num_var_reguladas options pos_inicial tau tsim u usar_MPC;
 clear x0 x_des xplus yref_pred utilde_opt lest lesu yref lesx lesy;
+clear ang_limite ang_simulado angulo comando comando_limite n pos_limite pos_simulado pos_spt;
+clear posicao tempo vel_angular vel_limite velocidade;
+
+clc;
