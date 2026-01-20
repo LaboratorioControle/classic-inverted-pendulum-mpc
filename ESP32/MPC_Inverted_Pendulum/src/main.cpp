@@ -80,7 +80,7 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {0, 0, 0, 0};
-float K_swing = 45;
+float K_swing = 25;
 
 // Limiares de troca
 const float THETA_SWITCH = 12 * PI/180.0;       
@@ -91,10 +91,11 @@ const float FIM_CURSO_VIRTUAL =  0.20;
 float set_point_x = 0.0;
 
 // Comando via botões físicos
-unsigned long lastButtonTime = 0;
-const unsigned long buttonDebounce = 1000;
 bool ajustandoPosicao = false; 
+bool emAjuste = false;
 bool ajustou = false;
+unsigned long inicioCombo = 0;
+bool comboDetectado = false;
 
 
 // ==============================
@@ -479,37 +480,65 @@ void ativaAjustePosInicial() {
     ajustou = true;  // Flag para zerar o encoder
 }
 
-void gerenciaBotoes(){
-    if (millis() - lastButtonTime > buttonDebounce) {
-        if (digitalRead(BOT_LIGA)) {
-            delay(500); // Aguarda o usuário apertar os dois botões juntos
-            if (digitalRead(BOT_DESLIGA)) {
-                ativaAjustePosInicial();
-            } else {
-                K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
-                ativaControladorLQR();
-            }
-            lastButtonTime = millis();
-        } else {
-            if (digitalRead(BOT_DESLIGA)) {
-                degrauAtivo = false;
-                senoideAtiva = false;
-                ajustandoPosicao = false;
-                desativaControladorLQR();
+void gerenciaBotoes() {
 
-                if(ajustou){
-                    encoderPendCount = 0;
-                    encoderMotCount = 0;
-                    lastEncodedPend = 0;
-                    lastEncodedMot = 0;
-                    ajustou = false;
-                }
+    bool liga = digitalRead(BOT_LIGA);
+    bool desliga = digitalRead(BOT_DESLIGA);
+    unsigned long agora = millis();
 
-                lastButtonTime = millis();
+    // ===============================
+    // ENTRADA NO AJUSTE
+    // ===============================
+    if (!emAjuste && liga && desliga) {
+
+        if (!comboDetectado) {
+            comboDetectado = true;
+            inicioCombo = agora;
+        }
+
+        if (agora - inicioCombo >= 300) {
+            ativaAjustePosInicial();
+            emAjuste = true;
+        }
+        return;
+    }
+
+    comboDetectado = false;
+
+    // ===============================
+    // SAÍDA DO AJUSTE
+    // ===============================
+    if (emAjuste) {
+        if (desliga && !liga) {
+            ajustandoPosicao = false;
+            emAjuste = false;
+
+            if (ajustou) {
+                encoderPendCount = 0;
+                encoderMotCount = 0;
+                lastEncodedPend = 0;
+                lastEncodedMot = 0;
+                ajustou = false;
             }
         }
+        return;
+    }
+
+    // ===============================
+    // ESTADO NORMAL
+    // ===============================
+    if (liga && !desliga) {
+        K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
+        ativaControladorLQR();
+    }
+
+    if (desliga && !liga) {
+        desativaControladorLQR();
+        degrauAtivo = false;
+        senoideAtiva = false;
     }
 }
+
 
 
 // ======================================================================
@@ -610,7 +639,7 @@ void taskLeitura(void *parameter) {
   while (true) {
     vTaskDelayUntil(&xLastWakeTime, periodo);
 
-    if(ajustandoPosicao){
+    if(emAjuste){
         ajustaPosInicial();
     } else if(controleLQRAtivo){
         controleEstadoLQR();
@@ -1078,51 +1107,51 @@ void setup() {
   Serial.begin(115200);
 
   // Inicia Controlador MPC
-  setupMPC();
+  //setupMPC();
   //mpc.printMatrix(mpc.H);
 
-  setupSimulacao();
+  //setupSimulacao();
 
-  // Wire.begin(21, 22);
+  Wire.begin(21, 22);
 
-  // if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
-  //   Serial.println("Falha ao iniciar display!");
-  // }
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
+    Serial.println("Falha ao iniciar display!");
+  }
 
-  // telaBoasVindas();
-
-
-  // pinMode(ENCODER_PEND_A, INPUT);
-  // pinMode(ENCODER_PEND_B, INPUT);
-  // pinMode(ENCODER_MOT_A, INPUT);
-  // pinMode(ENCODER_MOT_B, INPUT);
-  // pinMode(MOTOR_PWM1, OUTPUT);
-  // pinMode(MOTOR_PWM2, OUTPUT);
-  // pinMode(POTENCIOMETRO, INPUT);
+  telaBoasVindas();
 
 
-  // // PWM MOTOR - Esquerda
-  // ledcSetup(0, 10000, 8);        // Canal 0, 10kHz, 8 bits
-  // ledcAttachPin(MOTOR_PWM1, 0);
+  pinMode(ENCODER_PEND_A, INPUT);
+  pinMode(ENCODER_PEND_B, INPUT);
+  pinMode(ENCODER_MOT_A, INPUT);
+  pinMode(ENCODER_MOT_B, INPUT);
+  pinMode(MOTOR_PWM1, OUTPUT);
+  pinMode(MOTOR_PWM2, OUTPUT);
+  pinMode(POTENCIOMETRO, INPUT);
 
-  // // PWM MOTOR - Direita
-  // ledcSetup(1, 10000, 8);        // Canal 1, 10kHz, 8 bits
-  // ledcAttachPin(MOTOR_PWM2, 1);
 
-  // // Interrupções
-  // attachInterrupt(digitalPinToInterrupt(ENCODER_PEND_A), updateEncoderPend, CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(ENCODER_PEND_B), updateEncoderPend, CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(ENCODER_MOT_A),  updateEncoderMot,  CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(ENCODER_MOT_B),  updateEncoderMot,  CHANGE);
+  // PWM MOTOR - Esquerda
+  ledcSetup(0, 10000, 8);        // Canal 0, 10kHz, 8 bits
+  ledcAttachPin(MOTOR_PWM1, 0);
 
-  // // Inicia Controlador MPC
-  // setupMPC();
-  // mpc.printMatrix(mpc.H);
+  // PWM MOTOR - Direita
+  ledcSetup(1, 10000, 8);        // Canal 1, 10kHz, 8 bits
+  ledcAttachPin(MOTOR_PWM2, 1);
 
-  // // Cria tarefa FreeRTOS
-  // xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
-  // xTaskCreatePinnedToCore(taskSerial,   "TaskSerial",  2048, NULL, 1, NULL, 1);
-  // xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
+  // Interrupções
+  attachInterrupt(digitalPinToInterrupt(ENCODER_PEND_A), updateEncoderPend, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_PEND_B), updateEncoderPend, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_MOT_A),  updateEncoderMot,  CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_MOT_B),  updateEncoderMot,  CHANGE);
+
+  // Inicia Controlador MPC
+  //setupMPC();
+  //mpc.printMatrix(mpc.H);
+
+  // Cria tarefa FreeRTOS
+  xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(taskSerial,   "TaskSerial",  2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
 }
 
 void loop() {
