@@ -135,6 +135,20 @@ float x_dot = 0.0;      // Velocidade do carro (m/s)
 float theta = 0.0;      // Ângulo (rad)
 float theta_dot = 0.0;  // Velocidade angular (rad/s)
 
+
+// ==============================
+// ENVIO DE DADOS PARA O MATLAB
+// ==============================
+typedef struct {
+  uint32_t t_ms;
+  float theta_deg;
+  float theta_dot;
+  float x_cm;
+  float x_dot_cm;
+} LogData;
+
+QueueHandle_t filaLog;
+
 // ==============================
 // INTERRUPÇÕES DOS ENCODERS
 // ==============================
@@ -441,6 +455,7 @@ void controleEstadoMPC() {
   }
 }
 
+
 // ==============================
 // FUNÇÃO PARA ATIVAÇÃO PELOS BOTÕES FÍSICOS
 // ==============================
@@ -538,7 +553,6 @@ void gerenciaBotoes() {
         senoideAtiva = false;
     }
 }
-
 
 
 // ======================================================================
@@ -683,14 +697,25 @@ void taskLeitura(void *parameter) {
     int leituraPot = analogRead(POTENCIOMETRO);
     set_point_x = ((float)leituraPot / 4095.0f) * guia - guia/2.0;
 
-    //Serial.printf("%.4f;%.2f;%.2f;%.2f;%.2f\n", tempo_s, theta*180/PI, theta_dot, x*100, x_dot*100);
+    // Envio de dados para o MatLab para plot online
+    LogData log;
+
+    log.t_ms       = millis();
+    log.theta_deg  = theta * 180.0f / PI;
+    log.theta_dot  = theta_dot;
+    log.x_cm       = x * 100.0f;
+    log.x_dot_cm   = x_dot * 100.0f;
+            
+    // Envia para a fila (não bloqueia)
+    xQueueSend(filaLog, &log, 0);
   }
 }
 
+
 // ==============================
-// VERIFICA COMANDOS VIA SERIAL
+// VERIFICA COMANDOS DE ENTRADA VIA SERIAL
 // ==============================
-void taskSerial(void *parameter) {
+void taskSerialRx(void *parameter) {
     String buffer = "";
     while (true) {
         while (Serial.available()) {
@@ -813,6 +838,24 @@ void taskSerial(void *parameter) {
 
         vTaskDelay(pdMS_TO_TICKS(10)); // Pequena pausa para permitir que outras tasks rodem
     }
+}
+
+
+// ==============================
+// ENVIA O BUFFER DE DADOS VIA SERIAL
+// ==============================
+void taskSerialTx(void *parameter) {
+  LogData log;
+  uint8_t header[2] = {0xAA, 0x55};
+
+  vTaskDelay(pdMS_TO_TICKS(2000));
+
+  while (true) {
+    if (xQueueReceive(filaLog, &log, portMAX_DELAY) == pdTRUE) {
+      Serial.write(header, 2);
+      Serial.write((uint8_t*)&log, sizeof(LogData));
+    }
+  }
 }
 
 // ======================================================================
@@ -1104,10 +1147,12 @@ void setupSimulacao(){
 // CONFIGURAÇÃO INICIAL
 // ==============================
 void setup() {
+
+  filaLog = xQueueCreate(200, sizeof(LogData)); // buffer de 200 amostras
   Serial.begin(115200);
 
-  // Inicia Controlador MPC
-  //setupMPC();
+  //Inicia Controlador MPC
+  setupMPC();
   //mpc.printMatrix(mpc.H);
 
   //setupSimulacao();
@@ -1150,8 +1195,9 @@ void setup() {
 
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
-  xTaskCreatePinnedToCore(taskSerial,   "TaskSerial",  2048, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 
 void loop() {
