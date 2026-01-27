@@ -5,7 +5,7 @@ function Interface_Coleta_Dados()
     % ==============================
     % JANELA PRINCIPAL COM ABAS
     % ==============================
-        f = uifigure('Name','Software - Pêndulo Invertido', 'Resize','off', 'Position',[100 100 1200 650], 'Icon','Imagens/logoPipaVovo.png');
+        f = uifigure('Name','Software - Pêndulo Invertido', 'Resize','off', 'Position',[100 100 1200 650], 'Icon','docs/figures/logoPipaVovo.png');
         movegui(f,'center');
         tabgp = uitabgroup(f, 'Units', 'normalized', 'Position', [0 0.05 1 0.95]);
         
@@ -21,7 +21,7 @@ function Interface_Coleta_Dados()
             'BorderType','none');
         
         uiimage(painelLogo, ...
-            'ImageSource', 'Imagens/logoUfla.png', ...  % coloque o nome do seu arquivo aqui
+            'ImageSource', 'docs/figures/logoUfla.png', ...  % coloque o nome do seu arquivo aqui
             'Position', [1130 -15 60 60]);   % centraliza horizontalmente
 
         uilabel(painelLogo, ...
