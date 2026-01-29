@@ -5,6 +5,13 @@
 #include <Arduino.h>
 #include <qpOASES.hpp>
 
+// Variáveis do MPC
+#define N 35 // Horizonte de predição
+#define n 4  // Número de estados
+#define nc 3  // Número de estados com restrições
+#define ny 2  // Número de estados regulados
+#define nu 1  // Número de sinais de comandos
+
 
 struct Matrix {
     size_t r, c;
@@ -20,25 +27,36 @@ class MPC {
 public:
     Matrix A, B, Cc, Dc, Cr;
 
-    size_t n, nu, ny, nc;
-    size_t N;
-
     Matrix Qu, Qy;
 
     Matrix ycmax, ycmin, deltamax, deltamin;
     Matrix umax, umin;
 
-    Matrix H, F1, F2, F3;
-    std::vector<qpOASES::real_t> H_qp, A_qp, lb_qp, ub_qp;
-    Matrix Aineq, G1, G2, G3;
+    //Matrizes calculadas offline
+    qpOASES::real_t H[N*nu * N*nu];
+    qpOASES::real_t F1[N*nu * n];
+    qpOASES::real_t F2[N*nu * N*ny];
+    qpOASES::real_t F3[N*nu * nu];
 
-    std::vector<float> utildemax;
-    std::vector<float> utildemin;
+    qpOASES::real_t Aineq[(2*N*nc + 2*N*nu) * N*nu];
+    qpOASES::real_t G1[(2*N*nc + 2*N*nu) * n];
+    qpOASES::real_t G2[(2*N*nc + 2*N*nu) * nu];
+    qpOASES::real_t G3[2*N*nc + 2*N*nu];
+
+    //Matrizes de limite do sinal de comando
+    qpOASES::real_t utildemax[N * nu];
+    qpOASES::real_t utildemin[N * nu]; 
+    
+    // Matrizes calculadas online
+    qpOASES::real_t yref[N * ny];
+    qpOASES::real_t F[N];
+    qpOASES::real_t Bineq[2*n*N];
+    qpOASES::real_t utilde_opt[N * nu];
 
     MPC();
 
     void compute_MPC_Matrices();
-    float compute_MPC_Command(float ulast, float pos_spt, float estados[4]);
+    float compute_MPC_Command(float ulast, float* spt, float* err);
     void printMatrix(const Matrix& M);
     
 
@@ -46,9 +64,8 @@ private:
     qpOASES::QProblem *qp = nullptr;
     bool qp_initialized = false;
 
-    Matrix generate_yref(float pos_spt);
-    std::vector<qpOASES::real_t> matrix_to_realt(const Matrix& M);
-    std::vector<qpOASES::real_t> vector_to_realt(const std::vector<float>& v);
+    void generate_yref(const float* spt, qpOASES::real_t* yref);
+    void matrix_to_realt(const Matrix& M, qpOASES::real_t* result);
     void compute_Cost_Matrices();
     void compute_Constraints_Matrices();
 };

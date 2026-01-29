@@ -1,6 +1,6 @@
 #include "MPC.h"
 
-Matrix eye(size_t n){ Matrix I(n,n); for(size_t i=0;i<n;i++) I(i,i)=1.0; return I; }
+Matrix eye(size_t n_){ Matrix I(n_,n_); for(size_t i=0;i<n_;i++) I(i,i)=1.0; return I; }
 Matrix zeros(size_t r, size_t c){ return Matrix(r,c,0.0); }
 
 Matrix transpose(const Matrix& A){ Matrix B(A.c, A.r); for(size_t i=0;i<A.r;i++) for(size_t j=0;j<A.c;j++) B(j,i)=A(i,j); return B; }
@@ -17,8 +17,8 @@ void insertBlock(Matrix& dst, size_t r0, size_t c0, const Matrix& src){
     for(size_t i=0;i<src.r;i++) for(size_t j=0;j<src.c;j++) dst(r0+i,c0+j)=src(i,j);
 }
 
-Matrix P_i(size_t i, size_t n1, size_t N){
-    Matrix f(n1, N*n1, 0.0);
+Matrix P_i(size_t i, size_t n1, size_t N_){
+    Matrix f(n1, N_*n1, 0.0);
     // block columns (i-1)*n1 to i*n1-1
     for(size_t r=0;r<n1;r++) f(r,(i-1)*n1 + r) = 1.0;
     return f;
@@ -29,29 +29,14 @@ MPC::MPC(){}
 void MPC::compute_MPC_Matrices(){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
-    utildemax.clear(); utildemin.clear();
-    for(size_t i=0;i<N;i++){
-        for(size_t j=0;j<nu;j++) utildemax.push_back(umax(j,0));
-        for(size_t j=0;j<nu;j++) utildemin.push_back(umin(j,0));
-    }
 
-    H_qp = matrix_to_realt(H); 
-    H = Matrix();         
-    A_qp = matrix_to_realt(Aineq);   
-    Aineq = Matrix();      
-    lb_qp = vector_to_realt(utildemin);         
-    ub_qp =  vector_to_realt(utildemax);
 
     qp = new qpOASES::QProblem(N*nu,nc);
 
     qpOASES::Options options;
     options.setToMPC();
-    //options.enableRegularisation = qpOASES::BT_TRUE; 
-    //options.numRegularisationSteps = 1; 
-    //options.epsRegularisation = 1e-4; 
-    //options.terminationTolerance = 1e-6; 
-    //options.initialStatusBounds = qpOASES::ST_INACTIVE;
-    //options.printLevel = qpOASES::PL_NONE; 
+    options.terminationTolerance = 1e-4; 
+    options.printLevel = qpOASES::PL_NONE; 
     qp->setOptions(options);
 }
 
@@ -69,50 +54,60 @@ void MPC::printMatrix(const Matrix& M) {
 }
 
 void MPC::compute_Cost_Matrices(){
-    n = A.r; nu = B.c; ny = Cr.r; nc = Cc.r;
     size_t nH = N*nu;
-    H = zeros(nH, nH);
-    F1 = zeros(nH, n);
-    F2 = zeros(nH, N*ny);
-    F3 = zeros(nH, nu);
+    Matrix H_temp = zeros(nH, nH);
+    Matrix F1_temp = zeros(nH, n);
+    Matrix F2_temp = zeros(nH, N*ny);
+    Matrix F3_temp = zeros(nH, nu);
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
+
     for(size_t i=1;i<=N;i++){
+
         // Psi_i = [inter_Psi_i zeros(n, (N-i)*nu)];
         Matrix Psi_i(n, N*nu, 0.0);
         insertBlock(Psi_i, 0, 0, inter_Psi_i);
         Matrix Pi_nu_N = P_i(i, nu, N);
         Matrix Pi_ny_N = P_i(i, ny, N);
+
         // H = H + (Cr*Psi_i)'*Qy*Cr*Psi_i + Pi_nu_N'*Qu*Pi_nu_N;
         Matrix CrPsi = mul(Cr, Psi_i);
         Matrix CrPsiT = transpose(CrPsi);
         Matrix term1 = mul(mul(CrPsiT, Qy), CrPsi);
         Matrix PiTQuPi = mul(mul(transpose(Pi_nu_N), Qu), Pi_nu_N);
-        H = H + term1 + PiTQuPi;
+        H_temp = H_temp+ term1 + PiTQuPi;
+
         // F1 = F1 + Psi_i'*Cr'*Qy*Cr*Phi_i;
         Matrix termF1 = mul(mul(transpose(Psi_i), transpose(Cr)), mul(Qy, mul(Cr, Phi_i)));
-        F1 = F1 + termF1;
+        F1_temp = F1_temp + termF1;
+
         // F2 = F2 - Psi_i'*Cr'*Qy*Pi_ny_N;
         Matrix termF2 = mul(mul(transpose(Psi_i), transpose(Cr)), mul(Qy, Pi_ny_N));
         // subtract
-        for(size_t rr=0; rr<F2.r; ++rr) for(size_t cc=0; cc<F2.c; ++cc) F2(rr,cc) -= termF2(rr,cc);
+        for(size_t rr=0; rr<F2_temp.r; ++rr) for(size_t cc=0; cc<F2_temp.c; ++cc) F2_temp(rr,cc) -= termF2(rr,cc);
+
         // F3 = F3 + Pi_nu_N'*Qu;
         Matrix termF3 = mul(transpose(Pi_nu_N), Qu);
-        F3 = F3 + termF3;
+        F3_temp = F3_temp + termF3;
         // update
         Phi_i = mul(Phi_i, A);
+
         // inter_Psi_i = [A*inter_Psi_i B]; horizontally appended
         Matrix A_inter = mul(A, inter_Psi_i);
         Matrix new_inter(n, inter_Psi_i.c + B.c, 0.0);
         insertBlock(new_inter, 0, 0, A_inter);
         insertBlock(new_inter, 0, A_inter.c, B);
         inter_Psi_i = new_inter;
+
+        matrix_to_realt(H_temp, H);
+        matrix_to_realt(F1_temp, F1);
+        matrix_to_realt(F2_temp, F2);
+        matrix_to_realt(F3_temp, F3);
     }
 }
 
 void MPC::compute_Constraints_Matrices(){
     // Translates compute_constraits_matrices
-    size_t n = A.r; size_t nu = B.c; size_t nc = Cc.r;
     if(Dc.r==0) Dc = zeros(Cc.r, B.c);
     std::vector<float> interPinuN(N*nu*N*nu, 0.0); // large zero matrix flattened (but we only slice)
     Matrix inter_Psi_i = B;
@@ -184,12 +179,13 @@ void MPC::compute_Constraints_Matrices(){
     Matrix A2(rows2*2, cols2, 0.0);
     for(size_t i=0;i<rows2;i++) for(size_t j=0;j<cols2;j++) A2(i,j) = rows_Aineq2[i][j];
     for(size_t i=0;i<rows2;i++) for(size_t j=0;j<cols2;j++) A2(rows2+i,j) = -rows_Aineq2[i][j];
+
     // Combine
-    Aineq = Matrix(A1.r + A2.r, A1.c, 0.0);
+    Matrix Aineq_temp = Matrix(A1.r + A2.r, A1.c, 0.0);
     // insert A1 at top
-    insertBlock(Aineq, 0, 0, A1);
+    insertBlock(Aineq_temp, 0, 0, A1);
     // insert A2 after A1
-    insertBlock(Aineq, A1.r, 0, A2);
+    insertBlock(Aineq_temp, A1.r, 0, A2);
     // G1_1 doubled and then G1 built with zeros bottom
     size_t g1rows = rows_G1_1.size();
     Matrix G1dup(g1rows*2, n, 0.0);
@@ -206,84 +202,104 @@ void MPC::compute_Constraints_Matrices(){
     std::vector<float> G3_1_v; G3_1_v.insert(G3_1_v.end(), G3_11_v.begin(), G3_11_v.end()); G3_1_v.insert(G3_1_v.end(), G3_12_v.begin(), G3_12_v.end());
     std::vector<float> G3_2_v; G3_2_v.insert(G3_2_v.end(), G3_21_v.begin(), G3_21_v.end()); G3_2_v.insert(G3_2_v.end(), G3_22_v.begin(), G3_22_v.end());
     // G1 = [G1_1; zeros(2*N*nu,n)];
-    G1 = Matrix(G1dup.r + 2*N*nu, n, 0.0);
-    insertBlock(G1, 0, 0, G1dup);
+    Matrix G1_temp = Matrix(G1dup.r + 2*N*nu, n, 0.0);
+    insertBlock(G1_temp, 0, 0, G1dup);
     // remaining rows zero already
     // G2 = [zeros(2*N*nc,nu); G2_2];
-    G2 = Matrix(2*N*nc + G2_2.r, nu, 0.0);
-    insertBlock(G2, 2*N*nc, 0, G2_2);
+    Matrix G2_temp = Matrix(2*N*nc + G2_2.r, nu, 0.0);
+    insertBlock(G2_temp, 2*N*nc, 0, G2_2);
     // G3 = [G3_1; G3_2];
     size_t G3rows = G3_1_v.size() + G3_2_v.size();
-    G3 = Matrix(G3rows, 1, 0.0);
-    for(size_t i=0;i<G3_1_v.size();++i) G3(i,0) = G3_1_v[i];
-    for(size_t i=0;i<G3_2_v.size();++i) G3(G3_1_v.size()+i, 0) = G3_2_v[i];
-}
+    Matrix G3_temp = Matrix(G3rows, 1, 0.0);
+    for(size_t i=0;i<G3_1_v.size();++i) G3_temp(i,0) = G3_1_v[i];
+    for(size_t i=0;i<G3_2_v.size();++i) G3_temp(G3_1_v.size()+i, 0) = G3_2_v[i];
 
-Matrix MPC::generate_yref(float pos_spt) {
+    matrix_to_realt(Aineq_temp, Aineq);
+    matrix_to_realt(G1_temp, G1);
+    matrix_to_realt(G2_temp, G2);
+    matrix_to_realt(G3_temp, G3);
 
-    size_t tam = N * ny;
 
-    Matrix yref(tam, 1, 0.0f);
 
-    for (size_t i = 0; i < tam; i += 2) {
-        yref(i, 0) = pos_spt;
-    }
-
-    return yref;
-}
-
-std::vector<qpOASES::real_t> MPC::matrix_to_realt(const Matrix& M) {
-    size_t total_size = M.r * M.c;
-    std::vector<qpOASES::real_t> out(total_size);
-    
     size_t k = 0;
+    for (size_t i = 0; i < N; i++) {
+        for (size_t j = 0; j < nu; j++) {
+            utildemax[k] = umax(j,0);
+            utildemin[k] = umin(j,0);
+            k++;
+        }
+    }
+    
+}
 
-    for (size_t i = 0; i < M.r; i++) {
-        for (size_t j = 0; j < M.c; j++) {
-            out[k++] = static_cast<qpOASES::real_t>(M(i, j));
+void MPC::generate_yref(const float* spt, qpOASES::real_t* yref) {
+    for (uint16_t k = 0; k < N; k++) {
+        for (uint16_t j = 0; j < ny; j++) {
+            yref[k * ny + j] = spt[j];
+        }
+    }
+}
+
+void MPC::matrix_to_realt(const Matrix& M, qpOASES::real_t* result) {    
+    uint16_t k = 0;
+
+    for (uint16_t i = 0; i < M.r; i++) {
+        for (uint16_t j = 0; j < M.c; j++) {
+            result[k++] = static_cast<qpOASES::real_t>(M(i, j));
+        }
+    }
+}
+
+float MPC::compute_MPC_Command(float ulast, float* spt, float* err){
+
+    generate_yref(spt, yref);
+
+    // F = MPC.F1*err' + MPC.F2*yref_pred;
+    for (int i = 0; i < N*nu; i++) {
+        F[i] = 0.0f;
+
+        // F1 * err
+        for (int j = 0; j < n; j++) {
+            F[i] += F1[i*n + j] * err[j];
+        }
+
+        // F2 * yref
+        for (int j = 0; j < N*ny; j++) {
+            F[i] += F2[i*(N*ny) + j] * yref[j];
         }
     }
 
-    return out; 
-}
 
-std::vector<qpOASES::real_t> MPC::vector_to_realt(const std::vector<float>& v) {
-    std::vector<qpOASES::real_t> out(v.size());
+    //Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+    const int nB = 2*N*nc + 2*N*nu;
 
-    for (size_t i = 0; i < v.size(); i++) {
-        out[i] = static_cast<qpOASES::real_t>(v[i]);
+    for (int i = 0; i < nB; i++) {
+        Bineq[i] = 0.0f;
+
+        // G1 * err
+        for (int j = 0; j < n; j++) {
+            Bineq[i] += G1[i*n + j] * err[j];
+        }
+
+        // G2 * ulast
+        for (int j = 0; j < nu; j++) {
+            Bineq[i] += G2[i*nu + j] * ulast;
+        }
+
+        // + G3
+        Bineq[i] += G3[i];
     }
-
-    return out; 
-}
-
-float MPC::compute_MPC_Command(float ulast, float pos_spt, float estados[4]){
-    Matrix matrix_estados(n, 1);
-
-    for (size_t i = 0; i < n; i++) {
-        matrix_estados(i, 0) = estados[i];
-    }
-
-    Matrix yref_pred = generate_yref(pos_spt);
-
-    Matrix F = mul(F1, matrix_estados) + mul(F2, yref_pred);
-    Matrix Bineq = mul(G1, matrix_estados) + smul(ulast, G2) + G3;
-
-    std::vector<qpOASES::real_t> g_qp = matrix_to_realt(F);     
-    F = Matrix();       
-    std::vector<qpOASES::real_t> ubA_qp = matrix_to_realt(Bineq);      
-    Bineq = Matrix();
 
     int nWSR = 100;
 
     if(!qp_initialized){
-        qpOASES::returnValue ret = qp->init(H_qp.data(),g_qp.data(),A_qp.data(),lb_qp.data(),ub_qp.data(),NULL,ubA_qp.data(), nWSR);
+        qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR);
         qp_initialized = true;
     } else{
-        qpOASES::returnValue ret = qp->hotstart(g_qp.data(),lb_qp.data(),ub_qp.data(),NULL,ubA_qp.data(), nWSR);
+        qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR);
     }
 
-    qpOASES::real_t utilde_opt[N * nu];
+    
     qp->getPrimalSolution(utilde_opt);
 
     // Descomente se você tiver mais de um sinal de comando
