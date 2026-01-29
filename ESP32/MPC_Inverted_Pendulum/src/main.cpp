@@ -375,8 +375,6 @@ void setupMPC(){
   mpc.Qu = Matrix(1,1);
   mpc.Qu(0,0) = 0.001;
 
-  mpc.N = 35;
-
   // =========================
   // LIMITES
   // =========================
@@ -422,7 +420,8 @@ void controleEstadoMPC() {
     u = - (K[1] * erroX + K[3] * x_dot);
   }else if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
-    u = mpc.compute_MPC_Command(ulast, set_point_x, estados);
+    float spt[2] = {set_point_x, 0.0f};
+    u = mpc.compute_MPC_Command(ulast, spt, estados);
   }else{
     u = swingUpController();
   }
@@ -997,7 +996,8 @@ void simulationTask(void *pvParameters) {
           float erro = x[1] - PI;
           float estados[4] = {x[0], erro, x[2], x[3]};
           //Serial.printf("Entrou em MPC %.2f, %.4f, %.4f, %.4f\n", t, x[1]*180/PI, x[0], u);
-          u = mpc.compute_MPC_Command(ulast, 5/100, estados);
+          float spt[2] = {5.0f/100.0f, 0.0f};
+          u = mpc.compute_MPC_Command(ulast, spt, estados);
           //u = -1*(-20.3444*x[0] +168.7600*erro  -62.6529*x[2] + 32.3054*x[3]);
         }else if(emPerigo){
           //u = -62 * x[0];
