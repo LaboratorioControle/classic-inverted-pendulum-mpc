@@ -5,6 +5,7 @@
 % - Swing-Up baseado em energia para levar o pêndulo à região próxima
 % - MPC com restrições para estabilização em torno da posição invertida
 
+run init_project;
 close all;
 clc;
 
@@ -101,11 +102,11 @@ x_des = [0 180*pi/180 0 0];
 %% 5. CONFIGURAÇÃO DO SOLVER QP (qpOASES)
 
 options = qpOASES_options('default');
-options.enableFarBounds        = 0;
-options.maxIter                = 100;
-options.terminationTolerance   = 1e-3;
-options.boundTolerance         = 1e-6;
-options.enableRegularisation   = 1;
+%options.enableFarBounds        = 0;
+options.maxIter                = 10;
+options.terminationTolerance   = 1e-4;
+%options.boundTolerance         = 1e-6;
+%options.enableRegularisation   = 1;
 
 QP = [];
 
