@@ -80,7 +80,7 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {0, 0, 0, 0};
-float K_swing = 45;
+float K_swing = 44;
 
 // Limiares de troca
 const float THETA_SWITCH = 12 * PI/180.0;       
@@ -988,26 +988,21 @@ void simulationTask(void *pvParameters) {
         x4[k] = x[3];
         
         bool usaMPC = (abs(abs(x[1])-PI) < 8.0*PI/180.0) && (abs(x[3]) < 90.0*PI/180.0);
-        bool emPerigo = (abs(x[0]) > 1);
+        bool emPerigo = (abs(x[0]) > 0.18);
 
         //Serial.printf("%.2f, %.4f, %.4f, %.4f, %.4f\n", t, abs(abs(x[1])-PI)*180/PI, abs(x[3])*180/PI, x[0], u);
 
         if (usaMPC){
           float erro = x[1] - PI;
           float estados[4] = {x[0], erro, x[2], x[3]};
-          //Serial.printf("Entrou em MPC %.2f, %.4f, %.4f, %.4f\n", t, x[1]*180/PI, x[0], u);
           float spt[2] = {5.0f/100.0f, 0.0f};
           u = mpc.compute_MPC_Command(ulast, spt, estados);
-          //u = -1*(-20.3444*x[0] +168.7600*erro  -62.6529*x[2] + 32.3054*x[3]);
         }else if(emPerigo){
-          //u = -62 * x[0];
-          u = 0;
-          //Serial.printf("Entrou em perigo %.2f %.2f\n", t, x[0]*100);
+          u = -100 * x[0];
         }else{
           u = swingUpController2(x,dados);
-          //Serial.printf("Entrou em Swing %.2f, %.4f, %.4f, %.4f\n", t, x[1]*180/PI, x[0], u);
         }
-
+        
         u = constrain(u, -12.0, 12.0);
 
         u_vec[k] = u;
