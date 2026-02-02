@@ -1,26 +1,26 @@
 #include "MPC.h"
 
-Matrix eye(size_t n_){ Matrix I(n_,n_); for(size_t i=0;i<n_;i++) I(i,i)=1.0; return I; }
-Matrix zeros(size_t r, size_t c){ return Matrix(r,c,0.0); }
+Matrix eye(int n_){ Matrix I(n_,n_); for(int i=0;i<n_;i++) I(i,i)=1.0; return I; }
+Matrix zeros(int r, int c){ return Matrix(r,c,0.0); }
 
-Matrix transpose(const Matrix& A){ Matrix B(A.c, A.r); for(size_t i=0;i<A.r;i++) for(size_t j=0;j<A.c;j++) B(j,i)=A(i,j); return B; }
+Matrix transpose(const Matrix& A){ Matrix B(A.c, A.r); for(int i=0;i<A.r;i++) for(int j=0;j<A.c;j++) B(j,i)=A(i,j); return B; }
 
-Matrix operator+(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(size_t i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]+B.d[i]; return C; }
-Matrix operator-(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(size_t i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]-B.d[i]; return C; }
+Matrix operator+(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]+B.d[i]; return C; }
+Matrix operator-(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]-B.d[i]; return C; }
 
-Matrix mul(const Matrix& A, const Matrix& B){ assert(A.c==B.r); Matrix C(A.r,B.c,0.0); for(size_t i=0;i<A.r;i++) for(size_t k=0;k<A.c;k++){ float aik=A(i,k); for(size_t j=0;j<B.c;j++) C(i,j)+=aik * B(k,j); } return C; }
+Matrix mul(const Matrix& A, const Matrix& B){ assert(A.c==B.r); Matrix C(A.r,B.c,0.0); for(int i=0;i<A.r;i++) for(int k=0;k<A.c;k++){ float aik=A(i,k); for(int j=0;j<B.c;j++) C(i,j)+=aik * B(k,j); } return C; }
 
-Matrix smul(float s, const Matrix& A){ Matrix C(A.r,A.c); for(size_t i=0;i<A.r*A.c;i++) C.d[i]=s*A.d[i]; return C; }
+Matrix smul(float s, const Matrix& A){ Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=s*A.d[i]; return C; }
 
-void insertBlock(Matrix& dst, size_t r0, size_t c0, const Matrix& src){
+void insertBlock(Matrix& dst, int r0, int c0, const Matrix& src){
     assert(r0+src.r <= dst.r && c0+src.c <= dst.c);
-    for(size_t i=0;i<src.r;i++) for(size_t j=0;j<src.c;j++) dst(r0+i,c0+j)=src(i,j);
+    for(int i=0;i<src.r;i++) for(int j=0;j<src.c;j++) dst(r0+i,c0+j)=src(i,j);
 }
 
-Matrix P_i(size_t i, size_t n1, size_t N_){
+Matrix P_i(int i, int n1, int N_){
     Matrix f(n1, N_*n1, 0.0);
     // block columns (i-1)*n1 to i*n1-1
-    for(size_t r=0;r<n1;r++) f(r,(i-1)*n1 + r) = 1.0;
+    for(int r=0;r<n1;r++) f(r,(i-1)*n1 + r) = 1.0;
     return f;
 }
 
@@ -43,8 +43,8 @@ void MPC::compute_MPC_Matrices(){
 void MPC::printMatrix(const Matrix& M) {
     Serial.println();
 
-    for (size_t i = 0; i < M.r; i++) {
-        for (size_t j = 0; j < M.c; j++) {
+    for (int i = 0; i < M.r; i++) {
+        for (int j = 0; j < M.c; j++) {
             Serial.print(M(i, j), 6);   // 6 casas decimais
             if (j < M.c - 1)
                 Serial.print(",");
@@ -54,7 +54,7 @@ void MPC::printMatrix(const Matrix& M) {
 }
 
 void MPC::compute_Cost_Matrices(){
-    size_t nH = N*nu;
+    int nH = N*nu;
     Matrix H_temp = zeros(nH, nH);
     Matrix F1_temp = zeros(nH, n);
     Matrix F2_temp = zeros(nH, N*ny);
@@ -62,7 +62,7 @@ void MPC::compute_Cost_Matrices(){
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
 
-    for(size_t i=1;i<=N;i++){
+    for(int i=1;i<=N;i++){
 
         // Psi_i = [inter_Psi_i zeros(n, (N-i)*nu)];
         Matrix Psi_i(n, N*nu, 0.0);
@@ -84,7 +84,7 @@ void MPC::compute_Cost_Matrices(){
         // F2 = F2 - Psi_i'*Cr'*Qy*Pi_ny_N;
         Matrix termF2 = mul(mul(transpose(Psi_i), transpose(Cr)), mul(Qy, Pi_ny_N));
         // subtract
-        for(size_t rr=0; rr<F2_temp.r; ++rr) for(size_t cc=0; cc<F2_temp.c; ++cc) F2_temp(rr,cc) -= termF2(rr,cc);
+        for(int rr=0; rr<F2_temp.r; ++rr) for(int cc=0; cc<F2_temp.c; ++cc) F2_temp(rr,cc) -= termF2(rr,cc);
 
         // F3 = F3 + Pi_nu_N'*Qu;
         Matrix termF3 = mul(transpose(Pi_nu_N), Qu);
@@ -119,7 +119,7 @@ void MPC::compute_Constraints_Matrices(){
     std::vector<std::vector<float>> rows_Aineq1;
     std::vector<std::vector<float>> rows_Aineq2;
     std::vector<std::vector<float>> rows_G1_1;
-    for(size_t i=1;i<=N;i++){
+    for(int i=1;i<=N;i++){
         // Psi_i = [inter_Psi_i zeros(n,(N-i)*nu)];
         Matrix Psi_i(n, N*nu, 0.0);
         insertBlock(Psi_i, 0, 0, inter_Psi_i);
@@ -129,37 +129,37 @@ void MPC::compute_Constraints_Matrices(){
         // row Aineq1: Cc*Psi_i + Dc*Pi_nuN
         Matrix rowA = mul(Cc, Psi_i);
         // convert rowA to rows
-        for(size_t rr=0; rr<rowA.r; ++rr){
+        for(int rr=0; rr<rowA.r; ++rr){
             std::vector<float> row(rowA.c);
-            for(size_t cc=0; cc<rowA.c; ++cc) row[cc] = rowA(rr,cc);
+            for(int cc=0; cc<rowA.c; ++cc) row[cc] = rowA(rr,cc);
             rows_Aineq1.push_back(row);
         }
         // Aineq_2 building: banded identity and -identity between blocks (we'll build full matrix later)
         // we'll push identity rows incrementally
         // Build block row for this i of size N*nu (one-hot for this nu-block and negative for previous)
         std::vector<float> row_id(N*nu, 0.0);
-        for(size_t j=0;j<nu;j++) row_id[(i-1)*nu + j] = 1.0;
+        for(int j=0;j<nu;j++) row_id[(i-1)*nu + j] = 1.0;
         rows_Aineq2.push_back(row_id);
         if(i>1){
             std::vector<float> row_prev(N*nu, 0.0);
-            for(size_t j=0;j<nu;j++) row_prev[(i-2)*nu + j] = -1.0;
+            for(int j=0;j<nu;j++) row_prev[(i-2)*nu + j] = -1.0;
             // add to same row? MATLAB sets in columns; equivalent is to OR them: sum
-            for(size_t k=0;k<N*nu;k++) rows_Aineq2.back()[k] += row_prev[k];
+            for(int k=0;k<N*nu;k++) rows_Aineq2.back()[k] += row_prev[k];
         }
         // G1_1 accumulate: -Cc*Phi_i (each adds nc x n rows)
         Matrix G1row = smul(-1.0, mul(Cc, Phi_i));
-        for(size_t rr=0; rr<G1row.r; ++rr){
+        for(int rr=0; rr<G1row.r; ++rr){
             std::vector<float> rown(n);
-            for(size_t cc=0; cc<n; ++cc) rown[cc] = G1row(rr,cc);
+            for(int cc=0; cc<n; ++cc) rown[cc] = G1row(rr,cc);
             rows_G1_1.push_back(rown);
         }
         // G3 pieces are constraints bounds stacking
         // MPC.ycmax, ycmin, deltamax, deltamin are assumed column vectors (nc x 1 or nu x1)
         // stack them as scalars per row; in MATLAB they just concatenated the whole vectors
-        for(size_t rr=0; rr<ycmax.r; ++rr) G3_11_v.push_back(ycmax(rr,0));
-        for(size_t rr=0; rr<ycmin.r; ++rr) G3_12_v.push_back(-ycmin(rr,0));
-        for(size_t rr=0; rr<deltamax.r; ++rr) G3_21_v.push_back(deltamax(rr,0));
-        for(size_t rr=0; rr<deltamin.r; ++rr) G3_22_v.push_back(-deltamin(rr,0));
+        for(int rr=0; rr<ycmax.r; ++rr) G3_11_v.push_back(ycmax(rr,0));
+        for(int rr=0; rr<ycmin.r; ++rr) G3_12_v.push_back(-ycmin(rr,0));
+        for(int rr=0; rr<deltamax.r; ++rr) G3_21_v.push_back(deltamax(rr,0));
+        for(int rr=0; rr<deltamin.r; ++rr) G3_22_v.push_back(-deltamin(rr,0));
         // update
         Phi_i = mul(Phi_i, A);
         Matrix A_inter = mul(A, inter_Psi_i);
@@ -169,16 +169,16 @@ void MPC::compute_Constraints_Matrices(){
         inter_Psi_i = new_inter;
     }
     // After loop: Aineq_1 = [Aineq_1; -Aineq_1]; Aineq_2 = [Aineq_2; -Aineq_2]
-    size_t rows1 = rows_Aineq1.size();
-    size_t cols1 = (rows1>0? rows_Aineq1[0].size():0);
+    int rows1 = rows_Aineq1.size();
+    int cols1 = (rows1>0? rows_Aineq1[0].size():0);
     Matrix A1(rows1*2, cols1, 0.0);
-    for(size_t i=0;i<rows1;i++) for(size_t j=0;j<cols1;j++) A1(i,j) = rows_Aineq1[i][j];
-    for(size_t i=0;i<rows1;i++) for(size_t j=0;j<cols1;j++) A1(rows1+i,j) = -rows_Aineq1[i][j];
-    size_t rows2 = rows_Aineq2.size();
-    size_t cols2 = (rows2>0? rows_Aineq2[0].size():0);
+    for(int i=0;i<rows1;i++) for(int j=0;j<cols1;j++) A1(i,j) = rows_Aineq1[i][j];
+    for(int i=0;i<rows1;i++) for(int j=0;j<cols1;j++) A1(rows1+i,j) = -rows_Aineq1[i][j];
+    int rows2 = rows_Aineq2.size();
+    int cols2 = (rows2>0? rows_Aineq2[0].size():0);
     Matrix A2(rows2*2, cols2, 0.0);
-    for(size_t i=0;i<rows2;i++) for(size_t j=0;j<cols2;j++) A2(i,j) = rows_Aineq2[i][j];
-    for(size_t i=0;i<rows2;i++) for(size_t j=0;j<cols2;j++) A2(rows2+i,j) = -rows_Aineq2[i][j];
+    for(int i=0;i<rows2;i++) for(int j=0;j<cols2;j++) A2(i,j) = rows_Aineq2[i][j];
+    for(int i=0;i<rows2;i++) for(int j=0;j<cols2;j++) A2(rows2+i,j) = -rows_Aineq2[i][j];
 
     // Combine
     Matrix Aineq_temp = Matrix(A1.r + A2.r, A1.c, 0.0);
@@ -187,16 +187,16 @@ void MPC::compute_Constraints_Matrices(){
     // insert A2 after A1
     insertBlock(Aineq_temp, A1.r, 0, A2);
     // G1_1 doubled and then G1 built with zeros bottom
-    size_t g1rows = rows_G1_1.size();
+    int g1rows = rows_G1_1.size();
     Matrix G1dup(g1rows*2, n, 0.0);
-    for(size_t i=0;i<g1rows;i++) for(size_t j=0;j<n;j++) G1dup(i,j) = rows_G1_1[i][j];
-    for(size_t i=0;i<g1rows;i++) for(size_t j=0;j<n;j++) G1dup(g1rows+i,j) = -rows_G1_1[i][j];
+    for(int i=0;i<g1rows;i++) for(int j=0;j<n;j++) G1dup(i,j) = rows_G1_1[i][j];
+    for(int i=0;i<g1rows;i++) for(int j=0;j<n;j++) G1dup(g1rows+i,j) = -rows_G1_1[i][j];
     // G2_2 = [eye(nu); zeros((N-1)*nu, nu)]; then duplicated with negative
     Matrix G2_2(2*N*nu, nu, 0.0);
     // first block
-    for(size_t i=0;i<nu;i++) G2_2(i,i)=1.0;
+    for(int i=0;i<nu;i++) G2_2(i,i)=1.0;
     // bottom negative block
-    for(size_t i=0;i<nu;i++) G2_2(N*nu + i, i) = -1.0;
+    for(int i=0;i<nu;i++) G2_2(N*nu + i, i) = -1.0;
     // G3 build
     // In MATLAB G3 = [G3_1; G3_2]; where G3_1 stacks ycmax and -ycmin, G3_2 stacks deltamax and -deltamin
     std::vector<float> G3_1_v; G3_1_v.insert(G3_1_v.end(), G3_11_v.begin(), G3_11_v.end()); G3_1_v.insert(G3_1_v.end(), G3_12_v.begin(), G3_12_v.end());
@@ -209,10 +209,10 @@ void MPC::compute_Constraints_Matrices(){
     Matrix G2_temp = Matrix(2*N*nc + G2_2.r, nu, 0.0);
     insertBlock(G2_temp, 2*N*nc, 0, G2_2);
     // G3 = [G3_1; G3_2];
-    size_t G3rows = G3_1_v.size() + G3_2_v.size();
+    int G3rows = G3_1_v.size() + G3_2_v.size();
     Matrix G3_temp = Matrix(G3rows, 1, 0.0);
-    for(size_t i=0;i<G3_1_v.size();++i) G3_temp(i,0) = G3_1_v[i];
-    for(size_t i=0;i<G3_2_v.size();++i) G3_temp(G3_1_v.size()+i, 0) = G3_2_v[i];
+    for(int i=0;i<G3_1_v.size();++i) G3_temp(i,0) = G3_1_v[i];
+    for(int i=0;i<G3_2_v.size();++i) G3_temp(G3_1_v.size()+i, 0) = G3_2_v[i];
 
     matrix_to_realt(Aineq_temp, Aineq);
     matrix_to_realt(G1_temp, G1);
@@ -221,9 +221,9 @@ void MPC::compute_Constraints_Matrices(){
 
 
 
-    size_t k = 0;
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < nu; j++) {
+    int k = 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < nu; j++) {
             utildemax[k] = umax(j,0);
             utildemin[k] = umin(j,0);
             k++;
@@ -233,18 +233,18 @@ void MPC::compute_Constraints_Matrices(){
 }
 
 void MPC::generate_yref(const float* spt, qpOASES::real_t* yref) {
-    for (uint16_t k = 0; k < N; k++) {
-        for (uint16_t j = 0; j < ny; j++) {
+    for (int k = 0; k < N; k++) {
+        for (int j = 0; j < ny; j++) {
             yref[k * ny + j] = spt[j];
         }
     }
 }
 
 void MPC::matrix_to_realt(const Matrix& M, qpOASES::real_t* result) {    
-    uint16_t k = 0;
+    int k = 0;
 
-    for (uint16_t i = 0; i < M.r; i++) {
-        for (uint16_t j = 0; j < M.c; j++) {
+    for (int i = 0; i < M.r; i++) {
+        for (int j = 0; j < M.c; j++) {
             result[k++] = static_cast<qpOASES::real_t>(M(i, j));
         }
     }
@@ -306,7 +306,7 @@ float MPC::compute_MPC_Command(float ulast, float* spt, float* err){
     // Matrix P1 = P_i(1, nu, N);
     // Matrix utilde_opt_mat(N*nu, 1); 
 
-    // for (size_t i = 0; i < N*nu; ++i) {
+    // for (int i = 0; i < N*nu; ++i) {
     //     utilde_opt_mat(i,0) = utilde_opt[i];
     // }
 
