@@ -26,7 +26,7 @@ pos_inicial = 0;
 ang_inicial = 1*(pi/180);
 
 % Setpoint
-pos_spt = 0/100;
+pos_spt = 5/100;
 
 % Tempo total de simulação
 tsim = 30;
@@ -119,19 +119,15 @@ for i = 1 : nt - MPC.N
         lesx(i,4) = lesx(i,4) - 65*pi/180;
     end
 
-    % Integração do modelo não linear
-    xplus = RK4_discrete(lesx(i,:), u, tau, dados);
-
-    % Região de atuação do MPC
-    usar_MPC = (abs(xplus(2) - pi) < 8*pi/180) && ...
-               (abs(xplus(4))      < 90*pi/180);
+    usar_MPC = (abs(lesx(i,2) - pi) < 8*pi/180) && ...
+                (abs(lesx(i,4))      < 90*pi/180);
 
     if usar_MPC
         % ---------- MPC ----------
         yref_pred = yref(i*num_var_reguladas + 1 : ...
                           (i+MPC.N)*num_var_reguladas);
 
-        err = xplus - x_des;
+        err = lesx(i,:) - x_des;
 
         F     = MPC.F1*err' + MPC.F2*yref_pred;
         Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
@@ -162,15 +158,18 @@ for i = 1 : nt - MPC.N
 
     else
         % ---------- SWING-UP ----------
-        u = swingUp_energy_based_controller(xplus, dados);
+        u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(xplus(1)) >= 0.18
-            u = -100 * xplus(1);
+        if abs(lesx(i,1)) >= 0.18
+            u = -100 * lesx(i,1);
         end
 
         u = sat(u, comando_limite, -comando_limite);
     end
+
+    % Integração do modelo não linear
+    xplus = RK4_discrete(lesx(i,:), u, tau, dados);
 
     % Armazenamento
     lesu(i)      = u;
