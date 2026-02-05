@@ -1,5 +1,4 @@
 function Pi_r=compute_Pi_r(lesN,N,nu)
-    lesN=[1;lesN];
     nr=length(lesN);
     np=nr*nu;
     Pi_r=zeros(N*nu,np);
@@ -9,7 +8,7 @@ function Pi_r=compute_Pi_r(lesN,N,nu)
         elseif (i>=lesN(nr))
             Pi_r((i-1)*nu+1:i*nu,(nr-1)*nu+1:nr*nu)=eye(nu);
         else
-            ji=max(find(lesN<=i));
+            ji=find(lesN<=i, 1, 'last' );
             Pi_r((i-1)*nu+1:i*nu,(ji-1)*nu+1:ji*nu)=...
                 (1-(i-lesN(ji))/(lesN(ji+1)-lesN(ji)))*eye(nu);
             Pi_r((i-1)*nu+1:i*nu,ji*nu+1:(ji+1)*nu)=...
