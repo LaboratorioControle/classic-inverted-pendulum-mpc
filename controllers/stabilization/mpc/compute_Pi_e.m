@@ -1,5 +1,5 @@
 function Pi_e=compute_Pi_e(par_ex)
-    tr=par_ex.tr;alpha=par_ex.alpha;ne=par_ex.ne;
+    tr=par_ex.lambda;alpha=par_ex.alpha;ne=par_ex.ne;
     tau=par_ex.tau;N=par_ex.N;
     nu=length(ne);
     Pi_e=[];
