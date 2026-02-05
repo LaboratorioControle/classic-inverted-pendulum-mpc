@@ -11,7 +11,12 @@
 #define nc 3  // Número de estados com restrições
 #define ny 2  // Número de estados regulados
 #define nu 1  // Número de sinais de comandos
+#define nr 9  // Número de pontos de parametrização
 
+#define np (nu*nr) 
+#define nU (N*nu)
+#define nA (2*N*nc + 2*N*nu)
+#define nAr (2*N*nc + 4*N*nu)
 
 struct Matrix {
     size_t r, c;
@@ -23,6 +28,12 @@ struct Matrix {
     float  operator()(size_t i, size_t j) const { return d[i*c + j]; }
 };
 
+enum class MPCForm {
+    CLASSIC,
+    LINEAR,
+    EXPONENCIAL
+};
+
 class MPC {
 public:
     Matrix A, B, Cc, Dc, Cr;
@@ -32,42 +43,75 @@ public:
     Matrix ycmax, ycmin, deltamax, deltamin;
     Matrix umax, umin;
 
+    MPC(MPCForm form = MPCForm::CLASSIC, int nWSR = 100);
+
+    void compute_MPC_Matrices();
+    void compute_MPC_Matrices(float* pontos);
+    float* compute_MPC_Command(float ulast, float* spt, float* err);
+    void printMatrix(const Matrix& M);
+
+    
+    
+    
+    private:
+    qpOASES::QProblem *qp = nullptr;
+    bool qp_initialized = false;
+    MPCForm form_;
+    
     //Matrizes calculadas offline
-    qpOASES::real_t H[N*nu * N*nu];
-    qpOASES::real_t F1[N*nu * n];
-    qpOASES::real_t F2[N*nu * N*ny];
-    qpOASES::real_t F3[N*nu * nu];
-
-    qpOASES::real_t Aineq[(2*N*nc + 2*N*nu) * N*nu];
-    qpOASES::real_t G1[(2*N*nc + 2*N*nu) * n];
-    qpOASES::real_t G2[(2*N*nc + 2*N*nu) * nu];
-    qpOASES::real_t G3[2*N*nc + 2*N*nu];
-
+    qpOASES::real_t H[nU * nU];
+    qpOASES::real_t F1[nU * n];
+    qpOASES::real_t F2[nU * N*ny];
+    qpOASES::real_t F3[nU * nu];
+    
+    qpOASES::real_t Aineq[nA * nU];
+    qpOASES::real_t G1[nA * n];
+    qpOASES::real_t G2[nA * nu];
+    qpOASES::real_t G3[nA];
+    
     //Matrizes de limite do sinal de comando
-    qpOASES::real_t utildemax[N * nu];
-    qpOASES::real_t utildemin[N * nu]; 
+    qpOASES::real_t utildemax[nU];
+    qpOASES::real_t utildemin[nU]; 
     
     // Matrizes calculadas online
     qpOASES::real_t yref[N * ny];
     qpOASES::real_t F[N];
     qpOASES::real_t Bineq[2*n*N];
-    qpOASES::real_t utilde_opt[N * nu];
-
-    MPC();
-
-    void compute_MPC_Matrices();
-    float compute_MPC_Command(float ulast, float* spt, float* err);
-    void printMatrix(const Matrix& M);
+    qpOASES::real_t qp_opt[nU];
     
-
-private:
-    qpOASES::QProblem *qp = nullptr;
-    bool qp_initialized = false;
+    // Matrizes para a parametrização
+    qpOASES::real_t H_p[np * np];
+    qpOASES::real_t Aineq_p[nAr * np];
+    qpOASES::real_t F_p[np];
+    qpOASES::real_t Bineq_p[nAr];
+    
+    qpOASES::real_t u_[nu];
+    int nWSR;
+    
+    
+    // Matrizes de seleção para os casos parametrizados
+    qpOASES::real_t Pi_r[nU * np];
+    qpOASES::real_t Pi_e[nU * np];
 
     void generate_yref(const float* spt, qpOASES::real_t* yref);
     void matrix_to_realt(const Matrix& M, qpOASES::real_t* result);
     void compute_Cost_Matrices();
     void compute_Constraints_Matrices();
+    void build_cost_vector(float* err);
+    void build_constraints(float* err, float ulast);
+    void compute_util_opt();
+
+    void init_solver_qp();
+    void solver_qp();
+
+    void compute_Reduced_Matrices(qpOASES::real_t* Pi_ref);
+    void compute_Bineq_reduced(qpOASES::real_t* Pi_ref);
+    void compute_Aineq_reduced(qpOASES::real_t* Pi_ref);
+    void compute_F_reduced(qpOASES::real_t* Pi_ref);
+    void compute_H_reduced(qpOASES::real_t* Pi_ref);
+    
+    void compute_Pi_e(float* pontos);
+    void compute_Pi_r(float* pontos);
 };
 
 #endif

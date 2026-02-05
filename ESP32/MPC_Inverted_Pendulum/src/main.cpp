@@ -100,7 +100,7 @@ bool ajustou = false;
 // ==============================
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
-MPC mpc;
+MPC mpc = MPC(MPCForm::LINEAR, 100);
 float pos_limite = 20.0/100.0;
 float ang_limite = 12.0 * (PI/180.0);
 float vel_limite = 45.0/100.0;
@@ -403,7 +403,8 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  mpc.compute_MPC_Matrices();
+  float pontos[9] = {1, 4, 8, 12, 16, 20, 24, 28, 32};
+  mpc.compute_MPC_Matrices(pontos);
 }
 
 void controleEstadoMPC() {
@@ -411,24 +412,24 @@ void controleEstadoMPC() {
   float erroX = x - (set_point_x / 100.0f);  // converte cm → metros, se sua pos está em m
   float erroTheta = theta - PI; 
 
-  float u = 0;
+  float* u;
 
   bool emZonaPerigo = abs(x) > FIM_CURSO_VIRTUAL;
   bool emRegiaoMPC = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
   if (emZonaPerigo){
-    u = - (K[1] * erroX + K[3] * x_dot);
+    u[0] = - (K[1] * erroX + K[3] * x_dot);
   }else if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
     float spt[2] = {set_point_x, 0.0f};
-    u = mpc.compute_MPC_Command(ulast, spt, estados);
+    //u = mpc.compute_MPC_Command(ulast, spt, estados);
   }else{
-    u = swingUpController();
+    u[0]  = swingUpController();
   }
 
-  u = constrain(u, -12.0, 12.0);
-  ulast = u;
-  float u_pwm = (u / 12.0) * 255.0;
+  u[0]  = constrain(u[0], -12.0, 12.0);
+  ulast = u[0];
+  float u_pwm = (u[0] / 12.0) * 255.0;
   
   if (u_pwm >= 0) {
     ledcWrite(0, (int)u_pwm);
@@ -964,7 +965,7 @@ void simulationTask(void *pvParameters) {
         0
     };
 
-    float u = 0;
+    float u[1] = {0.0f};
 
     for (int k = 0; k < NT; k++) {
 
@@ -976,7 +977,7 @@ void simulationTask(void *pvParameters) {
 
         // avança a planta
         float x_next[4];
-        RK4_discreto(x, u, Ts, dados, x_next);
+        RK4_discreto(x, u[0], Ts, dados, x_next);
 
         // copia o estado
         memcpy(x, x_next, sizeof(x));
@@ -990,23 +991,25 @@ void simulationTask(void *pvParameters) {
         bool usaMPC = (abs(abs(x[1])-PI) < 8.0*PI/180.0) && (abs(x[3]) < 90.0*PI/180.0);
         bool emPerigo = (abs(x[0]) > 0.18);
 
-        //Serial.printf("%.2f, %.4f, %.4f, %.4f, %.4f\n", t, abs(abs(x[1])-PI)*180/PI, abs(x[3])*180/PI, x[0], u);
 
         if (usaMPC){
           float erro = x[1] - PI;
           float estados[4] = {x[0], erro, x[2], x[3]};
           float spt[2] = {5.0f/100.0f, 0.0f};
-          u = mpc.compute_MPC_Command(ulast, spt, estados);
+
+          float* u_mpc = mpc.compute_MPC_Command(ulast, spt, estados);
+          u[0] = u_mpc[0];
+
         }else if(emPerigo){
-          u = -100 * x[0];
+          u[0] = -100 * x[0];
         }else{
-          u = swingUpController2(x,dados);
+          u[0] = swingUpController2(x,dados);
         }
         
-        u = constrain(u, -12.0, 12.0);
+        u[0] = constrain(u[0], -12.0, 12.0);
 
-        u_vec[k] = u;
-        ulast = u;
+        u_vec[k] = u[0];
+        ulast = u[0];
 
         vTaskDelay(1);
     }
@@ -1074,7 +1077,6 @@ void setup() {
 
   // Inicia Controlador MPC
   setupMPC();
-  //mpc.printMatrix(mpc.H);
 
   setupSimulacao();
 

@@ -24,13 +24,19 @@ Matrix P_i(int i, int n1, int N_){
     return f;
 }
 
-MPC::MPC(){}
+MPC::MPC(MPCForm form, int nWSR){
+    this->nWSR = nWSR;
+    this->form_ = form;
+}
 
 void MPC::compute_MPC_Matrices(){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
 
+    init_solver_qp();
+}
 
+void MPC::init_solver_qp(){
     qp = new qpOASES::QProblem(N*nu,nc);
 
     qpOASES::Options options;
@@ -39,6 +45,21 @@ void MPC::compute_MPC_Matrices(){
     options.printLevel = qpOASES::PL_NONE; 
     qp->setOptions(options);
 }
+
+void MPC::compute_MPC_Matrices(float* pontos){
+    compute_Cost_Matrices();
+    compute_Constraints_Matrices();
+
+    init_solver_qp();
+
+    if (form_ == MPCForm::LINEAR) {
+        compute_Pi_r(pontos);
+    } else if(form_ == MPCForm::EXPONENCIAL){
+        compute_Pi_e(pontos);
+    }
+}
+
+
 
 void MPC::printMatrix(const Matrix& M) {
     Serial.println();
@@ -232,6 +253,154 @@ void MPC::compute_Constraints_Matrices(){
     
 }
 
+
+// Matrizes reduzidas para parametrização
+void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
+    // zera Hr
+    //for (int i = 0; i < np*np; i++)
+     //   H_p[i] = 0.0f;
+
+    for (int i = 0; i < np; i++) {
+        for (int j = 0; j < np; j++) {
+            float sum = 0.0f;
+
+            for (int k = 0; k < nU; k++) {
+                for (int l = 0; l < nU; l++) {
+                    sum +=
+                        Pi_ref[k*np + i] *
+                        H[k*nU + l] *
+                        Pi_ref[l*np + j];
+                }
+            }
+
+            H_p[i*np + j] = sum;
+        }
+    }
+}
+
+void MPC::compute_F_reduced(qpOASES::real_t* Pi_ref){
+    for (int i = 0; i < np; i++) {
+        float sum = 0.0f;
+        for (int k = 0; k < nU; k++)
+            sum += Pi_ref[k*np + i] * F[k];
+
+        F_p[i] = sum;
+    }
+}
+
+void MPC::compute_Aineq_reduced(qpOASES::real_t* Pi_ref){
+    int row = 0;
+
+    // Aineq * Pi_r
+    for (int i = 0; i < nA; i++) {
+        for (int j = 0; j < np; j++) {
+            float sum = 0.0f;
+            for (int k = 0; k < nU; k++)
+                sum += Aineq[i*nU + k] * Pi_ref[k*np + j];
+
+            Aineq_p[row*np + j] = sum;
+        }
+        row++;
+    }
+
+    // -Pi_r
+    for (int i = 0; i < nU; i++, row++) {
+        for (int j = 0; j < np; j++)
+            Aineq_p[row*np + j] = -Pi_ref[i*np + j];
+    }
+
+    // Pi_r
+    for (int i = 0; i < nU; i++, row++) {
+        for (int j = 0; j < np; j++)
+            Aineq_p[row*np + j] = Pi_ref[i*np + j];
+    }
+}
+
+void MPC::compute_Bineq_reduced(qpOASES::real_t* Pi_ref){
+    int row = 0;
+
+    // Bineq
+    for (int i = 0; i < nA; i++)
+        Bineq_p[row++] = Bineq[i];
+
+    // -utildemin
+    for (int i = 0; i < nU; i++)
+        Bineq_p[row++] = -utildemin[i];
+
+    // utildemax
+    for (int i = 0; i < nU; i++)
+        Bineq_p[row++] = utildemax[i];
+}
+
+void MPC::compute_Reduced_Matrices(qpOASES::real_t* Pi_ref){
+    compute_H_reduced(Pi_ref);
+    compute_F_reduced(Pi_ref);
+    compute_Aineq_reduced(Pi_ref);
+    compute_Bineq_reduced(Pi_ref);
+}
+
+void MPC::compute_Pi_r(float* pontos){
+    // zera tudo
+    for (int i = 0; i < N*nu*np; i++)
+        Pi_r[i] = 0.0;
+
+    for (int i = 1; i <= N; i++) {   // MATLAB-style pra facilitar tradução
+        int row0 = (i-1)*nu;
+
+        if (i == 1) {
+            // Pi_r(1:nu,1:nu) = eye(nu)
+            for (int k = 0; k < nu; k++) {
+                int row = row0 + k;
+                int col = k;
+                Pi_r[row*np + col] = 1.0;
+            }
+
+        } else if (i >= pontos[nr-1]) {
+            // Pi_r((i-1)*nu+1:i*nu,(nr-1)*nu+1:nr*nu) = eye(nu)
+            int col0 = (nr-1)*nu;
+            for (int k = 0; k < nu; k++) {
+                int row = row0 + k;
+                int col = col0 + k;
+                Pi_r[row*np + col] = 1.0;
+            }
+
+        } else {
+            // ji = last index such that lesN[ji] <= i
+            int ji = 0;
+            for (int j = 0; j < nr; j++) {
+                if (pontos[j] <= i)
+                    ji = j;
+            }
+
+            float alpha =
+                1.0 - float(i - pontos[ji]) /
+                float(pontos[ji+1] - pontos[ji]);
+
+            float beta =
+                float(i - pontos[ji]) /
+                float(pontos[ji+1] - pontos[ji]);
+
+            // bloco ji
+            for (int k = 0; k < nu; k++) {
+                int row = row0 + k;
+                int col = ji*nu + k;
+                Pi_r[row*np + col] = alpha;
+            }
+
+            // bloco ji+1
+            for (int k = 0; k < nu; k++) {
+                int row = row0 + k;
+                int col = (ji+1)*nu + k;
+                Pi_r[row*np + col] = beta;
+            }
+        }
+    }
+}
+
+void MPC::compute_Pi_e(float* pontos){
+
+}
+
 void MPC::generate_yref(const float* spt, qpOASES::real_t* yref) {
     for (int k = 0; k < N; k++) {
         for (int j = 0; j < ny; j++) {
@@ -250,10 +419,8 @@ void MPC::matrix_to_realt(const Matrix& M, qpOASES::real_t* result) {
     }
 }
 
-float MPC::compute_MPC_Command(float ulast, float* spt, float* err){
 
-    generate_yref(spt, yref);
-
+void MPC::build_cost_vector(float* err){
     // F = MPC.F1*err' + MPC.F2*yref_pred;
     for (int i = 0; i < N*nu; i++) {
         F[i] = 0.0f;
@@ -268,12 +435,11 @@ float MPC::compute_MPC_Command(float ulast, float* spt, float* err){
             F[i] += F2[i*(N*ny) + j] * yref[j];
         }
     }
+}
 
-
+void MPC::build_constraints(float* err, float ulast){
     //Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
-    const int nB = 2*N*nc + 2*N*nu;
-
-    for (int i = 0; i < nB; i++) {
+    for (int i = 0; i < nA; i++) {
         Bineq[i] = 0.0f;
 
         // G1 * err
@@ -289,30 +455,83 @@ float MPC::compute_MPC_Command(float ulast, float* spt, float* err){
         // + G3
         Bineq[i] += G3[i];
     }
+}
 
-    int nWSR = 100;
+void MPC::solver_qp(){
 
-    if(!qp_initialized){
-        qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR);
-        qp_initialized = true;
-    } else{
-        qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR);
+    int nWSR_ = nWSR;
+    
+    if (form_ == MPCForm::CLASSIC) {
+
+        if(!qp_initialized){
+            qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR_);
+            qp_initialized = true;
+        } else{
+            qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR_);
+        }
+
+    } else if(form_ == MPCForm::LINEAR){
+
+        compute_Reduced_Matrices(Pi_r);
+
+        if(!qp_initialized){
+            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qp_initialized = true;
+        } else{
+            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+        }
+
+    } else if(form_ == MPCForm::EXPONENCIAL){
+
+        compute_Reduced_Matrices(Pi_e);
+
+        if(!qp_initialized){
+            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qp_initialized = true;
+        } else{
+            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+        }
+
     }
 
+    qp->getPrimalSolution(qp_opt);
+}
+
+void MPC::compute_util_opt(){
+
+    if (form_ == MPCForm::CLASSIC) {
+        for (int i = 0; i < nu; i++) 
+            u_[i] = qp_opt[i];
+            
+    } else if(form_ == MPCForm::LINEAR){
+        for (int i = 0; i < nu; i++) {
+            u_[i] = 0.0f;
+            for (int j = 0; j < np; j++) {
+                u_[i] += Pi_r[i*np + j] * qp_opt[j];
+            }
+        }
+    } else if(form_ == MPCForm::EXPONENCIAL){
+        for (int i = 0; i < nu; i++) {
+            u_[i] = 0.0f;
+            for (int j = 0; j < np; j++) {
+                u_[i] += Pi_e[i*np + j] * qp_opt[j];
+            }
+        }
+    }
+}
+
+float* MPC::compute_MPC_Command(float ulast, float* spt, float* err){
     
-    qp->getPrimalSolution(utilde_opt);
+    generate_yref(spt, yref);
+    
+    build_cost_vector(err);
+    build_constraints(err, ulast);
+    
+    solver_qp();
+    
+    compute_util_opt();
 
-    // Descomente se você tiver mais de um sinal de comando
-    // Matrix P1 = P_i(1, nu, N);
-    // Matrix utilde_opt_mat(N*nu, 1); 
-
-    // for (int i = 0; i < N*nu; ++i) {
-    //     utilde_opt_mat(i,0) = utilde_opt[i];
-    // }
-
-    // Matrix u = mul(P1, utilde_opt_mat);
-    float u = utilde_opt[0];
-    return u;
+    return u_;
 }
 
 #include <fstream>
