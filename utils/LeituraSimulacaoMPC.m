@@ -1,6 +1,6 @@
 clear; clc;
 
-porta = "COM5";     % ajuste para a porta do seu ESP32
+porta = "COM8";     % ajuste para a porta do seu ESP32
 baud  = 115200;
 
 disp("📡 Abrindo porta serial...");
@@ -81,20 +81,20 @@ figure;
 
 subplot(2,2,1);
 plot(tempo, x*100, 'LineWidth', 1.5);
-ylabel('x (m)'); grid on;
+ylabel('x (cm)'); grid on;
 
 subplot(2,2,2);
 plot(tempo, theta*180/pi, 'LineWidth', 1.5);
-ylabel('\theta (rad)'); grid on;
+ylabel('\theta (°)'); grid on;
 %ylim([-200 200]);
 
 subplot(2,2,3);
 plot(tempo, x_dot*100, 'LineWidth', 1.5);
-ylabel('x dot (m/s)'); grid on;
+ylabel('x dot (cm/s)'); grid on;
 
 subplot(2,2,4);
 plot(tempo, theta_dot*180/pi, 'LineWidth', 1.5);
-ylabel('\theta dot (rad/s)'); grid on;
+ylabel('\theta dot (°/s)'); grid on;
 
 figure;
 plot(tempo, u, 'LineWidth', 1.5);
@@ -111,9 +111,9 @@ exportados.x_dot = x_dot;
 exportados.u = u;
 
 
-timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-filename = ['data/processed/Ensaio_MPC_' timestamp '.mat'];
+%timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+%filename = ['data/processed/Ensaio_MPC_' timestamp '.mat'];
 
-save(filename, 'exportados');
+%save(filename, 'exportados');
 
 clear;
