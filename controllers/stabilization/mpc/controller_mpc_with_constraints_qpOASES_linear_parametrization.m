@@ -52,7 +52,7 @@ MPC.Cr = [1 0 0 0;
           0 1 0 0];
 
 % Pesos do custo
-MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
+MPC.Qy = diag([800 200]);   % penalização dos estados rastreados
 MPC.Qu = 0.001;            % penalização do esforço de controle
 MPC.N  = 35;                % horizonte de predição
 
