@@ -33,11 +33,11 @@ void MPC::compute_MPC_Matrices(){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
 
-    init_solver_qp();
+    init_solver_qp(nU);
 }
 
-void MPC::init_solver_qp(){
-    qp = new qpOASES::QProblem(N*nu,nc);
+void MPC::init_solver_qp(int size_qp){
+    qp = new qpOASES::QProblem(size_qp,nc);
 
     qpOASES::Options options;
     options.setToMPC();
@@ -47,31 +47,16 @@ void MPC::init_solver_qp(){
 }
 
 void MPC::compute_MPC_Matrices(float* pontos){
-    compute_Cost_Matrices();
-    compute_Constraints_Matrices();
-
-    init_solver_qp();
-
     if (form_ == MPCForm::LINEAR) {
         compute_Pi_r(pontos);
     } else if(form_ == MPCForm::EXPONENCIAL){
         compute_Pi_e(pontos);
     }
-}
+    
+    compute_Cost_Matrices();
+    compute_Constraints_Matrices();
 
-
-
-void MPC::printMatrix(const Matrix& M) {
-    Serial.println();
-
-    for (int i = 0; i < M.r; i++) {
-        for (int j = 0; j < M.c; j++) {
-            Serial.print(M(i, j), 6);   // 6 casas decimais
-            if (j < M.c - 1)
-                Serial.print(",");
-        }
-        Serial.println();
-    }
+    init_solver_qp(np);
 }
 
 void MPC::compute_Cost_Matrices(){
@@ -120,10 +105,17 @@ void MPC::compute_Cost_Matrices(){
         insertBlock(new_inter, 0, A_inter.c, B);
         inter_Psi_i = new_inter;
 
-        matrix_to_realt(H_temp, H);
-        matrix_to_realt(F1_temp, F1);
-        matrix_to_realt(F2_temp, F2);
-        matrix_to_realt(F3_temp, F3);
+    }
+
+    matrix_to_realt(H_temp, H);
+    matrix_to_realt(F1_temp, F1);
+    matrix_to_realt(F2_temp, F2);
+    matrix_to_realt(F3_temp, F3);
+
+    if (form_ == MPCForm::LINEAR) {
+        compute_H_reduced(Pi_r);
+    } else if(form_ == MPCForm::EXPONENCIAL){
+        compute_H_reduced(Pi_e);
     }
 }
 
@@ -240,6 +232,12 @@ void MPC::compute_Constraints_Matrices(){
     matrix_to_realt(G2_temp, G2);
     matrix_to_realt(G3_temp, G3);
 
+    if (form_ == MPCForm::LINEAR) {
+        compute_Aineq_reduced(Pi_r);
+        
+    } else if(form_ == MPCForm::EXPONENCIAL){
+        compute_Aineq_reduced(Pi_e);
+    }
 
 
     int k = 0;
@@ -250,16 +248,11 @@ void MPC::compute_Constraints_Matrices(){
             k++;
         }
     }
-    
 }
 
 
 // Matrizes reduzidas para parametrização
 void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
-    // zera Hr
-    //for (int i = 0; i < np*np; i++)
-     //   H_p[i] = 0.0f;
-
     for (int i = 0; i < np; i++) {
         for (int j = 0; j < np; j++) {
             float sum = 0.0f;
@@ -276,6 +269,9 @@ void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
             H_p[i*np + j] = sum;
         }
     }
+
+    //for (int i = 0; i < np; i++)
+    //    H_p[i*np + i] += 1e-2;
 }
 
 void MPC::compute_F_reduced(qpOASES::real_t* Pi_ref){
@@ -330,13 +326,6 @@ void MPC::compute_Bineq_reduced(qpOASES::real_t* Pi_ref){
     // utildemax
     for (int i = 0; i < nU; i++)
         Bineq_p[row++] = utildemax[i];
-}
-
-void MPC::compute_Reduced_Matrices(qpOASES::real_t* Pi_ref){
-    compute_H_reduced(Pi_ref);
-    compute_F_reduced(Pi_ref);
-    compute_Aineq_reduced(Pi_ref);
-    compute_Bineq_reduced(Pi_ref);
 }
 
 void MPC::compute_Pi_r(float* pontos){
@@ -419,7 +408,6 @@ void MPC::matrix_to_realt(const Matrix& M, qpOASES::real_t* result) {
     }
 }
 
-
 void MPC::build_cost_vector(float* err){
     // F = MPC.F1*err' + MPC.F2*yref_pred;
     for (int i = 0; i < N*nu; i++) {
@@ -472,7 +460,8 @@ void MPC::solver_qp(){
 
     } else if(form_ == MPCForm::LINEAR){
 
-        compute_Reduced_Matrices(Pi_r);
+        compute_F_reduced(Pi_r);
+        compute_Bineq_reduced(Pi_r);
 
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
@@ -483,7 +472,8 @@ void MPC::solver_qp(){
 
     } else if(form_ == MPCForm::EXPONENCIAL){
 
-        compute_Reduced_Matrices(Pi_e);
+        compute_F_reduced(Pi_r);
+        compute_Bineq_reduced(Pi_r);
 
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
@@ -504,18 +494,27 @@ void MPC::compute_util_opt(){
             u_[i] = qp_opt[i];
             
     } else if(form_ == MPCForm::LINEAR){
-        for (int i = 0; i < nu; i++) {
-            u_[i] = 0.0f;
+        for (int i = 0; i < N*nu; i++) {
+            u_full[i] = 0.0;
             for (int j = 0; j < np; j++) {
-                u_[i] += Pi_r[i*np + j] * qp_opt[j];
+                u_full[i] += Pi_r[i*np + j] * qp_opt[j];
             }
         }
-    } else if(form_ == MPCForm::EXPONENCIAL){
+
         for (int i = 0; i < nu; i++) {
-            u_[i] = 0.0f;
+            u_[i] = u_full[i];
+        }
+
+    } else if(form_ == MPCForm::EXPONENCIAL){
+        for (int i = 0; i < N*nu; i++) {
+            u_full[i] = 0.0;
             for (int j = 0; j < np; j++) {
-                u_[i] += Pi_e[i*np + j] * qp_opt[j];
+                u_full[i] += Pi_e[i*np + j] * qp_opt[j];
             }
+        }
+
+        for (int i = 0; i < nu; i++) {
+            u_[i] = u_full[i];
         }
     }
 }
@@ -529,8 +528,8 @@ float* MPC::compute_MPC_Command(float ulast, float* spt, float* err){
     
     solver_qp();
     
-    compute_util_opt();
-
+    compute_util_opt();    
+    
     return u_;
 }
 

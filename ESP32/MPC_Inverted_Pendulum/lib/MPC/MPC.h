@@ -4,6 +4,7 @@
 #include <vector>
 #include <Arduino.h>
 #include <qpOASES.hpp>
+#include <MessageHandling.hpp>
 
 // Variáveis do MPC
 #define N 35 // Horizonte de predição
@@ -43,15 +44,12 @@ public:
     Matrix ycmax, ycmin, deltamax, deltamin;
     Matrix umax, umin;
 
-    MPC(MPCForm form = MPCForm::CLASSIC, int nWSR = 100);
+    MPC(MPCForm form = MPCForm::CLASSIC, int nWSR = 1000);
 
     void compute_MPC_Matrices();
     void compute_MPC_Matrices(float* pontos);
     float* compute_MPC_Command(float ulast, float* spt, float* err);
-    void printMatrix(const Matrix& M);
 
-    
-    
     
     private:
     qpOASES::QProblem *qp = nullptr;
@@ -86,6 +84,7 @@ public:
     qpOASES::real_t Bineq_p[nAr];
     
     qpOASES::real_t u_[nu];
+    qpOASES::real_t u_full[nU];
     int nWSR;
     
     
@@ -101,10 +100,9 @@ public:
     void build_constraints(float* err, float ulast);
     void compute_util_opt();
 
-    void init_solver_qp();
+    void init_solver_qp(int size_qp);
     void solver_qp();
 
-    void compute_Reduced_Matrices(qpOASES::real_t* Pi_ref);
     void compute_Bineq_reduced(qpOASES::real_t* Pi_ref);
     void compute_Aineq_reduced(qpOASES::real_t* Pi_ref);
     void compute_F_reduced(qpOASES::real_t* Pi_ref);
