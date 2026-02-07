@@ -19,7 +19,7 @@ tau = dados.geral.Ts;
 % Limites físicos (normalizados em SI)
 pos_limite     = 20/100;           % posição máxima do carrinho [m]
 ang_limite     = 12*(pi/180);      % desvio máximo do ângulo [rad]
-vel_limite     = 45/100;           % velocidade máxima do carrinho [m/s]
+vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
 
 % Condições iniciais
@@ -27,7 +27,7 @@ pos_inicial = 0;
 ang_inicial = 1*(pi/180);
 
 % Setpoint
-pos_spt = 5/100;
+pos_spt = 0/100;
 
 % Tempo total de simulação
 tsim = 30;
@@ -54,7 +54,7 @@ MPC.Cr = [1 0 0 0;
 % Pesos do custo
 MPC.Qy = diag([800 200]);   % penalização dos estados rastreados
 MPC.Qu = 0.001;            % penalização do esforço de controle
-MPC.N  = 35;                % horizonte de predição
+MPC.N  = 30;                % horizonte de predição
 
 % Estados restringidos: posição, ângulo e velocidade
 MPC.Cc = [1 0 0 0;
@@ -76,7 +76,7 @@ MPC.deltamax =  1e5;
 % Cálculo das matrizes do problema QP
 MPC = compute_MPC_Matrices(MPC);
 
-lesN = [1; 4; 8; 12; 16; 20; 24; 28; 32];
+lesN = [1; 5; 10; 15; 20; 25; 30];
 Pi_r=compute_Pi_r(lesN,MPC.N,nu);
 
 %% 4. INICIALIZAÇÃO DA SIMULAÇÃO

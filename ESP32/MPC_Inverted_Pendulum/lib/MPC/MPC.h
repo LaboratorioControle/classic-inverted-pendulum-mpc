@@ -7,12 +7,12 @@
 #include <MessageHandling.hpp>
 
 // Variáveis do MPC
-#define N 35 // Horizonte de predição
+#define N 30 // Horizonte de predição
 #define n 4  // Número de estados
 #define nc 3  // Número de estados com restrições
 #define ny 2  // Número de estados regulados
 #define nu 1  // Número de sinais de comandos
-#define nr 9  // Número de pontos de parametrização
+#define nr 7  // Número de pontos de parametrização
 
 #define np (nu*nr) 
 #define nU (N*nu)
