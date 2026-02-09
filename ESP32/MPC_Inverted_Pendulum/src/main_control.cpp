@@ -79,13 +79,13 @@ volatile uint8_t pwmManual = 180;
 
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
-float K[4] = {0, 0, 0, 0};
-float K_swing = 25;
+float K[4] = {-15, 140, -80, 20};
+float K_swing = 30;
 
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
-const float THETA_DOT_SWITCH = 90 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  22.0/100.0; 
+const float THETA_DOT_SWITCH = 100 * PI/180.0;  
+const float FIM_CURSO_VIRTUAL =  25.0/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -102,9 +102,9 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::LINEAR, 10);
+MPC mpc = MPC(MPCForm::LINEAR, 30);
 float pos_limite = 20.0/100.0;
-float ang_limite = 15.0 * (PI/180.0);
+float ang_limite = 12.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
 float ulast = 0;
@@ -308,7 +308,7 @@ void controleEstadoLQR() {
 
   float u = 0;
 
-  bool emZonaPerigo = abs(x) > FIM_CURSO_VIRTUAL;
+  bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoLQR = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
   if (emZonaPerigo){
@@ -342,7 +342,7 @@ void ativaControladorLQR(){
   degrauAtivo = false;
   senoideAtiva = false;
 
-  if (theta == 0) {
+  if (theta <= 1e-2) {
     ledcWrite(1, 200);
     vTaskDelay(pdMS_TO_TICKS(50));
     ledcWrite(1, 0);
@@ -385,8 +385,8 @@ void setupMPC(){
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=800; mpc.Qy(0,1)=0;
-  mpc.Qy(1,0)=0; mpc.Qy(1,1)=100;
+  mpc.Qy(0,0)=320; mpc.Qy(0,1)=0;
+  mpc.Qy(1,0)=0; mpc.Qy(1,1)=120;
 
   mpc.Qu = Matrix(1,1);
   mpc.Qu(0,0) = 0.001;
@@ -430,7 +430,7 @@ void controleEstadoMPC() {
 
   float u = 0;
 
-  bool emZonaPerigo = abs(x) > FIM_CURSO_VIRTUAL;
+  bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoMPC = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
   if (emZonaPerigo){
@@ -438,7 +438,7 @@ void controleEstadoMPC() {
   }else if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
 
-    float spt[2] = {set_point_x, 0.0f};
+    float spt[2] = {0.0f, 0.0f};
     u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
   }else{
     u = swingUpController();
@@ -466,9 +466,9 @@ void desativaControladorMPC(){
 void ativaControladorMPC(){
   controleMPCAtivo = true;
 
-  if (theta == 0) {
-    ledcWrite(1, 200);
-    vTaskDelay(pdMS_TO_TICKS(50));
+  if (theta <= 1e-2) {
+    ledcWrite(1, 100);
+    vTaskDelay(pdMS_TO_TICKS(10));
     ledcWrite(1, 0);
   }
 }
@@ -560,11 +560,13 @@ void gerenciaBotoes() {
     // ESTADO NORMAL
     // ===============================
     if (liga && !desliga) {
-        K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
+        //K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
+        //ativaControladorLQR();
         ativaControladorMPC();
     }
 
     if (desliga && !liga) {
+        //desativaControladorLQR();
         desativaControladorMPC();
         degrauAtivo = false;
         senoideAtiva = false;
