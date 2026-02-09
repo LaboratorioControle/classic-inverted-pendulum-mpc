@@ -1,4 +1,4 @@
-function Interface_Coleta_Dados()
+function P5_Interface_Coleta_Dados()
 
         clear; clc; close all;
 

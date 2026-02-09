@@ -5,8 +5,9 @@
 % - Swing-Up baseado em energia para levar o pêndulo à região próxima
 % - MPC com restrições para estabilização em torno da posição invertida
 
+clear;
 run init_project;
-close all;
+%close all;
 clc;
 
 %% 1. PARÂMETROS GERAIS DO SISTEMA
@@ -18,15 +19,15 @@ tau = dados.geral.Ts;
 % Limites físicos (normalizados em SI)
 pos_limite     = 20/100;           % posição máxima do carrinho [m]
 ang_limite     = 12*(pi/180);      % desvio máximo do ângulo [rad]
-vel_limite     = 45/100;           % velocidade máxima do carrinho [m/s]
+vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
 
 % Condições iniciais
 pos_inicial = 0;
-ang_inicial = 1*(pi/180);
+ang_inicial = 0*(pi/180);
 
 % Setpoint
-pos_spt = 5/100;
+pos_spt = 0/100;
 
 % Tempo total de simulação
 tsim = 30;
@@ -36,7 +37,7 @@ qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
-dados.controlador.energia.k = 44;   % ganho da lei de energia
+dados.controlador.energia.k = 30;   % ganho da lei de energia
 dados.controlador.energia.n = 1;    % parâmetro reservado
 
 %% 3. DEFINIÇÃO DO MPC COM RESTRIÇÕES
@@ -52,8 +53,8 @@ MPC.Cr = [1 0 0 0;
 
 % Pesos do custo
 MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
-MPC.Qu = 0.0001;            % penalização do esforço de controle
-MPC.N  = 35;                % horizonte de predição
+MPC.Qu = 0.001;            % penalização do esforço de controle
+MPC.N  = 30;                % horizonte de predição
 
 % Estados restringidos: posição, ângulo e velocidade
 MPC.Cc = [1 0 0 0;
@@ -74,6 +75,9 @@ MPC.deltamax =  1e5;
 
 % Cálculo das matrizes do problema QP
 MPC = compute_MPC_Matrices(MPC);
+
+lesN = [1; 5; 10; 15; 20; 25; 30];
+Pi_r=compute_Pi_r(lesN,MPC.N,nu);
 
 %% 4. INICIALIZAÇÃO DA SIMULAÇÃO
 
@@ -103,7 +107,7 @@ x_des = [0 180*pi/180 0 0];
 
 options = qpOASES_options('default');
 %options.enableFarBounds        = 0;
-options.maxIter                = 10;
+options.maxIter                = 30;
 options.terminationTolerance   = 1e-4;
 %options.boundTolerance         = 1e-6;
 %options.enableRegularisation   = 1;
@@ -119,8 +123,13 @@ for i = 1 : nt - MPC.N
         lesx(i,4) = lesx(i,4) - 65*pi/180;
     end
 
-    usar_MPC = (abs(lesx(i,2) - pi) < 8*pi/180) && ...
-                (abs(lesx(i,4))      < 90*pi/180);
+    if i == 1
+        lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
+    end
+        
+
+    usar_MPC = (abs(lesx(i,2) - pi) < 15*pi/180) && ...
+                (abs(lesx(i,4))      < 100*pi/180);
 
     if usar_MPC
         % ---------- MPC ----------
@@ -129,30 +138,35 @@ for i = 1 : nt - MPC.N
 
         err = lesx(i,:) - x_des;
 
-        F     = MPC.F1*err' + MPC.F2*yref_pred;
-        Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+        MPC.F     = MPC.F1*err' + MPC.F2*yref_pred;
+        MPC.Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+
+        MPCr=compute_reduced_matrices(MPC,Pi_r);
+
+        %eps_reg = 1e-6;
+        %MPCr.H = MPCr.H + eps_reg * eye(size(MPCr.H));
 
         try
             if i == 1 || isempty(QP)
-                [QP, utilde_opt, ~, exitflag] = ...
-                    qpOASES_sequence('i', MPC.H, F, MPC.Aineq, ...
-                                     MPC.utildemin, MPC.utildemax, ...
-                                     [], Bineq, options);
+                [QP, p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('i', MPCr.H, MPCr.F, MPCr.Aineq, ...
+                                     [], [], ...
+                                     [], MPCr.Bineq, options);
             else
-                [utilde_opt, ~, exitflag] = ...
-                    qpOASES_sequence('h', QP, F, ...
-                                     MPC.utildemin, MPC.utildemax, ...
-                                     [], Bineq, options);
+                [p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('h', QP, MPCr.F, ...
+                                     [], [], ...
+                                     [], MPCr.Bineq, options);
             end
 
-            u = utilde_opt(1);
+            u=P_i(1, nu, MPC.N)*(Pi_r*p_opt);
 
-            if exitflag ~= 0 || any(~isfinite(utilde_opt))
+            if exitflag ~= 0 || any(~isfinite(p_opt))
                 qp_error_count = qp_error_count + 1;
             else
                 qp_error_count = 0;
             end
-        catch
+        catch 
             qp_error_count = qp_error_count + 1;
         end
 
@@ -161,8 +175,8 @@ for i = 1 : nt - MPC.N
         u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(lesx(i,1)) >= 0.18
-            u = -100 * lesx(i,1);
+        if abs(lesx(i,1)) >= 0.25
+            u = -15 * lesx(i,1);
         end
 
         u = sat(u, comando_limite, -comando_limite);
@@ -242,5 +256,5 @@ ylabel('Tensão [V]')
 title('Sinal de Controle')
 
 clear ang_inicial A B Bineq err exitflag;
-clear F i MPC nt nu num_var_reguladas options pos_inicial qp_error_count QP tau tsim u usar_MPC;
-clear x0 x_des xplus yref_pred utilde_opt lest lesu yref lesx lesy;
+clear F i nt nu num_var_reguladas options pos_inicial qp_error_count QP tau tsim u usar_MPC;
+clear x0 x_des xplus yref_pred p_opt lest lesu yref lesx lesy;

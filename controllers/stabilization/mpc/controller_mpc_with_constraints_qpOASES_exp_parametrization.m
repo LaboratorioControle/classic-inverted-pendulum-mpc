@@ -5,6 +5,7 @@
 % - Swing-Up baseado em energia para levar o pêndulo à região próxima
 % - MPC com restrições para estabilização em torno da posição invertida
 
+clear;
 run init_project;
 close all;
 clc;
@@ -75,6 +76,16 @@ MPC.deltamax =  1e5;
 % Cálculo das matrizes do problema QP
 MPC = compute_MPC_Matrices(MPC);
 
+
+par.lambda = 0.01;
+par.ne = 5; % Número de exponenciais para cada atuador (Matriz coluna)
+par.tau = tau;
+par.alpha = 0.5;
+par.N = MPC.N;
+%--------------------------
+
+Pi_e=compute_Pi_e(par);
+
 %% 4. INICIALIZAÇÃO DA SIMULAÇÃO
 
 x0 = [pos_inicial; ang_inicial; 0; 0];
@@ -103,7 +114,7 @@ x_des = [0 180*pi/180 0 0];
 
 options = qpOASES_options('default');
 %options.enableFarBounds        = 0;
-options.maxIter                = 10;
+options.maxIter                = 1000;
 options.terminationTolerance   = 1e-4;
 %options.boundTolerance         = 1e-6;
 %options.enableRegularisation   = 1;
@@ -129,30 +140,32 @@ for i = 1 : nt - MPC.N
 
         err = lesx(i,:) - x_des;
 
-        F     = MPC.F1*err' + MPC.F2*yref_pred;
-        Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+        MPC.F     = MPC.F1*err' + MPC.F2*yref_pred;
+        MPC.Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+
+        MPCr=compute_reduced_matrices(MPC,Pi_e);
 
         try
             if i == 1 || isempty(QP)
-                [QP, utilde_opt, ~, exitflag] = ...
-                    qpOASES_sequence('i', MPC.H, F, MPC.Aineq, ...
-                                     MPC.utildemin, MPC.utildemax, ...
-                                     [], Bineq, options);
+                [QP, p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('i', MPCr.H, MPCr.F, MPCr.Aineq, ...
+                                     [], MPCr.Bineq, options);
             else
-                [utilde_opt, ~, exitflag] = ...
-                    qpOASES_sequence('h', QP, F, ...
-                                     MPC.utildemin, MPC.utildemax, ...
-                                     [], Bineq, options);
+                [p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('h', QP, MPCr.F, ...
+                                     [], MPCr.Bineq, options);
             end
 
-            u = utilde_opt(1);
+            u=P_i(1, nu, MPC.N)*(Pi_e*p_opt);
 
-            if exitflag ~= 0 || any(~isfinite(utilde_opt))
+            if exitflag ~= 0 || any(~isfinite(p_opt))
                 qp_error_count = qp_error_count + 1;
             else
                 qp_error_count = 0;
             end
-        catch
+        catch ME
+            disp(ME.message)
+            disp(ME.stack(1))
             qp_error_count = qp_error_count + 1;
         end
 
@@ -243,4 +256,4 @@ title('Sinal de Controle')
 
 clear ang_inicial A B Bineq err exitflag;
 clear F i MPC nt nu num_var_reguladas options pos_inicial qp_error_count QP tau tsim u usar_MPC;
-clear x0 x_des xplus yref_pred utilde_opt lest lesu yref lesx lesy;
+clear x0 x_des xplus yref_pred p_opt lest lesu yref lesx lesy;

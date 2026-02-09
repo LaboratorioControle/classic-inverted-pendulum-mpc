@@ -1,10 +1,13 @@
 %% Comparação entre Simulação MPC e Dados Experimentais
 
+clear;
+run controllers\stabilization\mpc\controller_mpc_with_constraints_qpOASES.m;
+
 close all;
 clc;
 
 %% Carregar dados experimentais
-load("data/processed/Ensaio_MPC_10122025.mat");
+load("data/processed/Ensaio_MPC_2026-01-29_20-49-19.mat");
 
 tempo_exp     = exportados.tempo;
 u_exp         = exportados.u;
