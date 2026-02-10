@@ -7,7 +7,7 @@
 
 clear;
 run init_project;
-close all;
+%close all;
 clc;
 
 %% 1. PARÂMETROS GERAIS DO SISTEMA
@@ -78,7 +78,7 @@ MPC = compute_MPC_Matrices(MPC);
 
 
 par.lambda = 0.01;
-par.ne = 5; % Número de exponenciais para cada atuador (Matriz coluna)
+par.ne = 7; % Número de exponenciais para cada atuador (Matriz coluna)
 par.tau = tau;
 par.alpha = 0.5;
 par.N = MPC.N;
@@ -114,7 +114,7 @@ x_des = [0 180*pi/180 0 0];
 
 options = qpOASES_options('default');
 %options.enableFarBounds        = 0;
-options.maxIter                = 1000;
+options.maxIter                = 100;
 options.terminationTolerance   = 1e-4;
 %options.boundTolerance         = 1e-6;
 %options.enableRegularisation   = 1;
@@ -149,10 +149,12 @@ for i = 1 : nt - MPC.N
             if i == 1 || isempty(QP)
                 [QP, p_opt, ~, exitflag] = ...
                     qpOASES_sequence('i', MPCr.H, MPCr.F, MPCr.Aineq, ...
+                                     [], [], ...
                                      [], MPCr.Bineq, options);
             else
                 [p_opt, ~, exitflag] = ...
                     qpOASES_sequence('h', QP, MPCr.F, ...
+                                     [], [], ...
                                      [], MPCr.Bineq, options);
             end
 
