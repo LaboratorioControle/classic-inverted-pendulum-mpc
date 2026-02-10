@@ -7,14 +7,14 @@
 #include <MessageHandling.hpp>
 
 // Variáveis do MPC
-#define N 30 // Horizonte de predição
+#define N 35 // Horizonte de predição
 #define n 4  // Número de estados
 #define nc 3  // Número de estados com restrições
 #define ny 2  // Número de estados regulados
 #define nu 1  // Número de sinais de comandos
-#define nr 7  // Número de pontos de parametrização
+#define nre 7  // Número de pontos de parametrização/número de exponenciais
 
-#define np (nu*nr) 
+#define np (nu*nre) 
 #define nU (N*nu)
 #define nA (2*N*nc + 2*N*nu)
 #define nAr (2*N*nc + 4*N*nu)
@@ -48,6 +48,7 @@ public:
 
     void compute_MPC_Matrices();
     void compute_MPC_Matrices(float* pontos);
+    void compute_MPC_Matrices(float* lambda, float alpha, float tau);
     float* compute_MPC_Command(float ulast, float* spt, float* err);
 
     
@@ -90,7 +91,7 @@ public:
     
     // Matrizes de seleção para os casos parametrizados
     qpOASES::real_t Pi_r[nU * np];
-    qpOASES::real_t Pi_e[nU * np];
+    qpOASES::real_t Pi_e[nU * nre];
 
     void generate_yref(const float* spt, qpOASES::real_t* yref);
     void matrix_to_realt(const Matrix& M, qpOASES::real_t* result);
@@ -108,7 +109,7 @@ public:
     void compute_F_reduced(qpOASES::real_t* Pi_ref);
     void compute_H_reduced(qpOASES::real_t* Pi_ref);
     
-    void compute_Pi_e(float* pontos);
+    void compute_Pi_e(float* lambda, float alpha, float tau);
     void compute_Pi_r(float* pontos);
 };
 

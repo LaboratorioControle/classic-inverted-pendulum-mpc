@@ -12,9 +12,9 @@ float K[4] = {0, 0, 0, 0};
 float K_swing = 44;
 
 // Limiares de troca
-const float THETA_SWITCH = 12 * PI/180.0;       
-const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  0.20; 
+const float THETA_SWITCH = 8 * PI/180.0;       
+const float THETA_DOT_SWITCH = 90 * PI/180.0;  
+const float FIM_CURSO_VIRTUAL =  0.18; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -22,7 +22,7 @@ float set_point_x = 0.0;
 // ==============================
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
-MPC mpc = MPC(MPCForm::LINEAR, 100);
+MPC mpc = MPC(MPCForm::EXPONENCIAL, 100);
 float pos_limite = 20.0/100.0;
 float ang_limite = 12.0 * (PI/180.0);
 float vel_limite = 45.0/100.0;
@@ -166,8 +166,11 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  float pontos[9] = {1, 4, 8, 12, 16, 20, 24, 28, 32};
-  mpc.compute_MPC_Matrices(pontos);
+  //float pontos[9] = {1, 4, 8, 12, 16, 20, 24, 28, 32};
+  float lambda[1] = {0.01f};
+  float alpha = 0.5f;
+  float tau = PERIODO/1000;
+  mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 
@@ -364,13 +367,13 @@ void simulationTask(void *pvParameters) {
 
         if (usaMPC){
           float erro = x[1] - PI;
-          float estados[4] = {x[0], erro, x[2], x[3]};
-          float spt[2] = {5.0f/100.0f, 0.0f};
+            float estados[4] = {x[0], erro, x[2], x[3]};
+            float spt[2] = {5.0f/100.0f, 0.0f};
 
-          u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
-
+            u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
+            //Serial.println(u);
         }else if(emPerigo){
-          u = -30 * x[0];
+          u = -100 * x[0];
         }else{
           u = swingUpController2(x,dados);
         }

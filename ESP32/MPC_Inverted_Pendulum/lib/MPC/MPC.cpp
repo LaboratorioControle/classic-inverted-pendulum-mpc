@@ -47,11 +47,16 @@ void MPC::init_solver_qp(int size_qp){
 }
 
 void MPC::compute_MPC_Matrices(float* pontos){
-    if (form_ == MPCForm::LINEAR) {
-        compute_Pi_r(pontos);
-    } else if(form_ == MPCForm::EXPONENCIAL){
-        compute_Pi_e(pontos);
-    }
+    compute_Pi_r(pontos);
+    
+    compute_Cost_Matrices();
+    compute_Constraints_Matrices();
+
+    init_solver_qp(np);
+}
+
+void MPC::compute_MPC_Matrices(float* lambda, float alpha, float tau){
+    compute_Pi_e(lambda, alpha, tau); 
     
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
@@ -270,8 +275,8 @@ void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
         }
     }
 
-    //for (int i = 0; i < np; i++)
-    //    H_p[i*np + i] += 1e-2;
+    for (int i = 0; i < np; i++)
+        H_p[i*np + i] += 1e-6;
 }
 
 void MPC::compute_F_reduced(qpOASES::real_t* Pi_ref){
@@ -344,9 +349,9 @@ void MPC::compute_Pi_r(float* pontos){
                 Pi_r[row*np + col] = 1.0;
             }
 
-        } else if (i >= pontos[nr-1]) {
+        } else if (i >= pontos[nre-1]) {
             // Pi_r((i-1)*nu+1:i*nu,(nr-1)*nu+1:nr*nu) = eye(nu)
-            int col0 = (nr-1)*nu;
+            int col0 = (nre-1)*nu;
             for (int k = 0; k < nu; k++) {
                 int row = row0 + k;
                 int col = col0 + k;
@@ -356,7 +361,7 @@ void MPC::compute_Pi_r(float* pontos){
         } else {
             // ji = last index such that lesN[ji] <= i
             int ji = 0;
-            for (int j = 0; j < nr; j++) {
+            for (int j = 0; j < nre; j++) {
                 if (pontos[j] <= i)
                     ji = j;
             }
@@ -386,8 +391,23 @@ void MPC::compute_Pi_r(float* pontos){
     }
 }
 
-void MPC::compute_Pi_e(float* pontos){
+void MPC::compute_Pi_e(float* lambda, float alpha, float tau){
+    // Zera tudo
+    for (int i = 0; i < N*nu*np; i++)
+        Pi_e[i] = 0.0f;
 
+    for (int i = 0; i < N; i++){
+        int col_offset = 0;
+
+        for (int u = 0; u < nu; u++){
+            for (int j = 0; j < nre; j++){
+                float denom = j * alpha + 1.0f;
+
+                Pi_e[(i*nu+u)*np + col_offset + j] = expf(-2.0f / lambda[u] * (i * tau) / denom);
+            }
+            col_offset += nre;
+        }
+    }
 }
 
 void MPC::generate_yref(const float* spt, qpOASES::real_t* yref) {
@@ -472,15 +492,21 @@ void MPC::solver_qp(){
 
     } else if(form_ == MPCForm::EXPONENCIAL){
 
-        compute_F_reduced(Pi_r);
-        compute_Bineq_reduced(Pi_r);
+        compute_F_reduced(Pi_e);
+        compute_Bineq_reduced(Pi_e);
 
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
             qp_initialized = true;
+
+            //Serial.print("Init ");
+            //Serial.println((int)ret);
         } else{
             qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            //Serial.print("Hot ");
+            //Serial.println((int)ret);
         }
+
 
     }
 
