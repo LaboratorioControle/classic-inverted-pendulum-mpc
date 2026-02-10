@@ -85,7 +85,7 @@ float K_swing = 30;
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  25.0/100.0; 
+const float FIM_CURSO_VIRTUAL =  24.0/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -102,7 +102,7 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::LINEAR, 30);
+MPC mpc = MPC(MPCForm::EXPONENCIAL, 30);
 float pos_limite = 20.0/100.0;
 float ang_limite = 12.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
@@ -419,8 +419,13 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  float pontos[7] = {1, 5, 10, 15, 20, 25, 30};
-  mpc.compute_MPC_Matrices(pontos);
+  //float pontos[7] = {1, 5, 10, 15, 20, 25, 30};
+  //mpc.compute_MPC_Matrices(pontos);
+
+  float lambda[1] = {0.01f};
+  float alpha = 0.5f;
+  float tau = PERIODO/1000;
+  mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
