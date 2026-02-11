@@ -146,6 +146,7 @@ typedef struct {
   float theta_dot;
   float x_cm;
   float x_dot_cm;
+  float u;
 } LogData;
 
 QueueHandle_t filaLog;
@@ -320,6 +321,7 @@ void controleEstadoLQR() {
   }
 
   u = constrain(u, -12.0, 12.0);
+  ulast = u;
   float u_pwm = (u / 12.0) * 255.0;
   
   if (u_pwm >= 0) {
@@ -728,9 +730,10 @@ void taskLeitura(void *parameter) {
 
     log.t_ms       = millis();
     log.theta_deg  = theta * 180.0f / PI;
-    log.theta_dot  = theta_dot;
+    log.theta_dot  = theta_dot * 180.0f / PI;
     log.x_cm       = x * 100.0f;
     log.x_dot_cm   = x_dot * 100.0f;
+    log.u = ulast;
             
     // Envia para a fila (não bloqueia)
     xQueueSend(filaLog, &log, 0);
@@ -759,9 +762,7 @@ void taskSerialRx(void *parameter) {
                         comando = comando - 32; // Converte para maiúsculo
                     }
 
-                    // ===============================
                     // COMANDO DE DEGRAU (Ex: D,500,200,R)
-                    // ===============================
                     if (comando == 'D') {
                         // A lógica original de substring é mantida aqui.
                         int idx1 = buffer.indexOf(',');
@@ -790,9 +791,7 @@ void taskSerialRx(void *parameter) {
                         }
                     }
 
-                    // ===============================
                     // COMANDO SENOIDE: S,amplitude,frequencia
-                    // ===============================
                     else if (comando == 'S') { 
                       int idx1 = buffer.indexOf(',');
                       int idx2 = buffer.indexOf(',', idx1 + 1);
@@ -831,32 +830,29 @@ void taskSerialRx(void *parameter) {
                       desativaControladorLQR();
                     }
 
-                    // ===============================
-                    // COMANDOS SIMPLES: L / R / P (Nova Lógica Robusta)
-                    // ===============================
                     // Verifica se o buffer tem APENAS 1 caractere (L, R ou P)
                     else if (buffer.length() == 1) { 
+
+                      // COMANDOS SIMPLES: L / R / P
                         if (comando == 'L' || comando == 'R' || comando == 'P') {
-                            comandoManual = comando; // Usa a versão maiúscula
                             
-                            // Desativa degrau/senoide se um comando manual for enviado
-                            degrauAtivo = false;
-                            senoideAtiva = false;
+                          comandoManual = comando;
+                            
+                          // Desativa degrau/senoide se um comando manual for enviado
+                          degrauAtivo = false;
+                          senoideAtiva = false;
                         } else if(comando == 'Z') {
-                            encoderPendCount = 0;
-                            encoderMotCount = 0;
-                            lastEncodedPend = 0;
-                            lastEncodedMot = 0;
+                          encoderPendCount = 0;
+                          encoderMotCount = 0;
+                          lastEncodedPend = 0;
+                          lastEncodedMot = 0;
                         }
                     }
                     
                     // Limpa o buffer após o processamento, independentemente do sucesso
                     buffer = "";
                 }
-            } 
-            
-            // === 2. CONSTRUÇÃO DO BUFFER (Não é terminador) ===
-            else {
+            } else {
                 // Adiciona o caractere ao buffer (Ignora '\n' e '\r' do input)
                 buffer += c;
             }
@@ -947,8 +943,8 @@ void setup() {
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
+  xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 
 void loop() {
