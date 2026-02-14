@@ -19,15 +19,15 @@ tau = dados.geral.Ts;
 % Limites físicos (normalizados em SI)
 pos_limite     = 20/100;           % posição máxima do carrinho [m]
 ang_limite     = 12*(pi/180);      % desvio máximo do ângulo [rad]
-vel_limite     = 45/100;           % velocidade máxima do carrinho [m/s]
+vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
 
 % Condições iniciais
 pos_inicial = 0;
-ang_inicial = 1*(pi/180);
+ang_inicial = 0*(pi/180);
 
 % Setpoint
-pos_spt = 5/100;
+pos_spt = 0/100;
 
 % Tempo total de simulação
 tsim = 30;
@@ -37,7 +37,7 @@ qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
-dados.controlador.energia.k = 44;   % ganho da lei de energia
+dados.controlador.energia.k = 30;   % ganho da lei de energia
 dados.controlador.energia.n = 1;    % parâmetro reservado
 
 %% 3. DEFINIÇÃO DO MPC COM RESTRIÇÕES
@@ -53,7 +53,7 @@ MPC.Cr = [1 0 0 0;
 
 % Pesos do custo
 MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
-MPC.Qu = 0.0001;            % penalização do esforço de controle
+MPC.Qu = 0.001;            % penalização do esforço de controle
 MPC.N  = 35;                % horizonte de predição
 
 % Estados restringidos: posição, ângulo e velocidade
@@ -114,7 +114,7 @@ x_des = [0 180*pi/180 0 0];
 
 options = qpOASES_options('default');
 %options.enableFarBounds        = 0;
-options.maxIter                = 100;
+options.maxIter                = 30;
 options.terminationTolerance   = 1e-4;
 %options.boundTolerance         = 1e-6;
 %options.enableRegularisation   = 1;
@@ -126,12 +126,16 @@ QP = [];
 for i = 1 : nt - MPC.N
 
     % Distúrbio aplicado aos 15 s
-    if lest(i) == 15.0
-        lesx(i,4) = lesx(i,4) - 65*pi/180;
+    %if lest(i) == 15.0
+    %    lesx(i,4) = lesx(i,4) - 65*pi/180;
+    %end
+
+    if i == 1
+        lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
     end
 
-    usar_MPC = (abs(lesx(i,2) - pi) < 8*pi/180) && ...
-                (abs(lesx(i,4))      < 90*pi/180);
+    usar_MPC = (abs(lesx(i,2) - pi) < 15*pi/180) && ...
+                (abs(lesx(i,4))      < 100*pi/180);
 
     if usar_MPC
         % ---------- MPC ----------
@@ -176,8 +180,8 @@ for i = 1 : nt - MPC.N
         u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(lesx(i,1)) >= 0.18
-            u = -100 * lesx(i,1);
+        if abs(lesx(i,1)) >= 0.24
+            u = -15 * lesx(i,1);
         end
 
         u = sat(u, comando_limite, -comando_limite);

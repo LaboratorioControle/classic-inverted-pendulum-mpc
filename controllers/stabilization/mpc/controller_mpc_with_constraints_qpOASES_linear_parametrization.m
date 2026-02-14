@@ -175,7 +175,7 @@ for i = 1 : nt - MPC.N
         u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(lesx(i,1)) >= 0.25
+        if abs(lesx(i,1)) >= 0.24
             u = -15 * lesx(i,1);
         end
 
