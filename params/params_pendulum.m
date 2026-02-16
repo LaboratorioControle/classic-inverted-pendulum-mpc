@@ -18,7 +18,7 @@ dados.geral.guia = 0.60; % [m] Tamanho da guia linear
 % ==============================
 % Dados do carro
 % ==============================
-dados.carro.m = 74.5/1000;         % [kg]    Massa do carro
+dados.carro.m = 350.5/1000;         % [kg]    Massa do carro
 dados.carro.c = 11.2498;          % [N·s/m] Coeficiente de amortecimento viscoso entre carro e guia
 
 
