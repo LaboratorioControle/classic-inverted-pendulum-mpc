@@ -80,12 +80,13 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {-15, 140, -80, 20};
-float K_swing = 22;
+float K_swing = 45;
+float K_swing_pos = 10;
 
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  24.0/100.0; 
+const float FIM_CURSO_VIRTUAL =  23.0/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -114,17 +115,17 @@ float ulast = 0;
 // ==============================
 const float PERIODO = 10.0;  // ms
 
-const float m = 0.0204;       // Massa pêndulo
-const float l = 0.18;         // Distância até o centro de massa
+const float m = 0.0669;       // Massa pêndulo
+const float l = 0.15;         // Distância até o centro de massa
 const float g = 9.81;         // Gravidade
-const float I = 0.0003;     // Momento de Inércia
-const float M = 0.3505;       // Massa carrinho
+const float I = 0.0013;     // Momento de Inércia
+const float M = 0.3725;       // Massa carrinho
 const float b = 0;     // Atrito viscoso do pêndulo
-const float c = 11.2498;          // Atrito viscoso do carrinho
-const float kt = 0.1748;       // Constante de torque do motor
-const float kb = 0.0177;        // Constante de força eletromotriz
-const float Rm = 6.8845;        // Resistência do motor
-const float r  = 0.071;       // Raio da polia
+const float c = 11.1755;          // Atrito viscoso do carrinho
+const float kt = 0.1749;       // Constante de torque do motor
+const float kb = 0.1115;        // Constante de força eletromotriz
+const float Rm = 11.8180;        // Resistência do motor
+const float r  = 0.0389;       // Raio da polia
 const float guia = 30.0;      // Tamanho da guia (cm)
 
 
@@ -282,7 +283,7 @@ float swingUpController() {
 
     float k_energy = K_swing * g;
 
-    float x_2dot_desejado = k_energy * (E - E_des) * sign(arg) - 2*x;
+    float x_2dot_desejado = k_energy * (E - E_des) * sign(arg) - K_swing_pos * x;
     
     float theta_2dot = (-b * theta_dot
                         - m * l * cos(theta) * x_2dot_desejado
