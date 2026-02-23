@@ -80,11 +80,11 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {-15, 140, -80, 20};
-float K_swing = 45;
-float K_swing_pos = 10;
+float K_swing = 60;
+float K_swing_pos = 0;
 
 // Limiares de troca
-const float THETA_SWITCH = 15 * PI/180.0;       
+const float THETA_SWITCH = 12 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
 const float FIM_CURSO_VIRTUAL =  23.0/100.0; 
 
@@ -105,7 +105,7 @@ bool comboDetectado = false;
 volatile bool controleMPCAtivo = false;
 MPC mpc = MPC(MPCForm::EXPONENCIAL, 30);
 float pos_limite = 20.0/100.0;
-float ang_limite = 12.0 * (PI/180.0);
+float ang_limite = 10.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
 float ulast = 0;
@@ -136,7 +136,6 @@ float x = 0.0;          // Posição (m)
 float x_dot = 0.0;      // Velocidade do carro (m/s)
 float theta = 0.0;      // Ângulo (rad)
 float theta_dot = 0.0;  // Velocidade angular (rad/s)
-
 
 // ==============================
 // ENVIO DE DADOS PARA O MATLAB
@@ -361,16 +360,16 @@ void setupMPC(){
   // MATRIZES DO MODELO
   // =========================
   mpc.A = Matrix(4,4);
-  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0000; mpc.A(0,2)=0.0091;  mpc.A(0,3)=0.0000;
-  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0022; mpc.A(1,2)=-0.0039; mpc.A(1,3)=0.0100;
-  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0044; mpc.A(2,2)=0.8224;  mpc.A(2,3)=0.0000;
-  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.4346; mpc.A(3,2)=-0.7526; mpc.A(3,3)=1.0021;
+  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0000; mpc.A(0,2)=0.0086;  mpc.A(0,3)=0.0000;
+  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0019; mpc.A(1,2)=-0.0049; mpc.A(1,3)=0.0100;
+  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0075; mpc.A(2,2)=0.7379;  mpc.A(2,3)=0.0000;
+  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.3781; mpc.A(3,2)=-0.9383; mpc.A(3,3)=1.0019;
 
   mpc.B = Matrix(4,1);
   mpc.B(0,0)=0.0000;
-  mpc.B(1,0)=0.0001;
-  mpc.B(2,0)=0.0068;
-  mpc.B(3,0)=0.0288;
+  mpc.B(1,0)=0.0002;
+  mpc.B(2,0)=0.0081;
+  mpc.B(3,0)=0.0291;
 
   // =========================
   // MATRIZ DE SAÍDA
@@ -388,8 +387,8 @@ void setupMPC(){
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=320; mpc.Qy(0,1)=0;
-  mpc.Qy(1,0)=0; mpc.Qy(1,1)=120;
+  mpc.Qy(0,0)=520; mpc.Qy(0,1)=0;
+  mpc.Qy(1,0)=0; mpc.Qy(1,1)=150;
 
   mpc.Qu = Matrix(1,1);
   mpc.Qu(0,0) = 0.001;
@@ -442,11 +441,10 @@ void controleEstadoMPC() {
   bool emRegiaoMPC = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
   if (emZonaPerigo){
-    u = - (K[1] * erroX + K[3] * x_dot);
+    u = - K[1] * erroX;
   }else if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
-
-    float spt[2] = {0.0f, 0.0f};
+    float spt[2] = {set_point_x / 100.0f, 0.0f};
     u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
   }else{
     u = swingUpController();
@@ -677,6 +675,12 @@ void taskLeitura(void *parameter) {
   float x_ant  = 0.0;
   float tempo_s = 0.0;
 
+  float theta_dot_filtrado = 0.0f;
+  float x_dot_filtrado     = 0.0f;
+
+  float Ts = PERIODO / 1000.0f;
+  float alpha = 0.5f;
+
   while (true) {
     vTaskDelayUntil(&xLastWakeTime, periodo);
 
@@ -704,7 +708,11 @@ void taskLeitura(void *parameter) {
 
     // Cálculo da posição em metros e da velocidade em m/s
     x = (float) countMot / (FATOR_CONV_DIST * 100.0f);
-    x_dot = (x - x_ant) / (PERIODO / 1000.0);
+
+    float x_dot_raw = (x - x_ant) / Ts;
+    x_dot_filtrado = alpha * x_dot_filtrado + (1 - alpha) * x_dot_raw;
+    x_dot = x_dot_filtrado;
+
     x_ant = x;
 
     // Cálculo do ângulo entre 0 e 2π
@@ -719,12 +727,15 @@ void taskLeitura(void *parameter) {
     if (delta_theta > PI)       delta_theta -= 2*PI;
     else if (delta_theta < -PI) delta_theta += 2*PI;
 
-    theta_dot = delta_theta / (PERIODO / 1000.0) ;
+    float theta_dot_raw = delta_theta / Ts;
+    theta_dot_filtrado = alpha * theta_dot_filtrado + (1 - alpha) * theta_dot_raw;
+    theta_dot = theta_dot_filtrado;
+
     theta_ant = theta;
 
     // Leitura do potênciometro para definição do set point da posição
     int leituraPot = analogRead(POTENCIOMETRO);
-    set_point_x = ((float)leituraPot / 4095.0f) * guia - guia/2.0;
+    set_point_x = -1 *(((float)leituraPot / 4095.0f) * guia - guia/2.0);
 
     // Envio de dados para o MatLab para plot online
     LogData log;
