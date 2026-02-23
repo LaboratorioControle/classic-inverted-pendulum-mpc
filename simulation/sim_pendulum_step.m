@@ -20,14 +20,14 @@ plot_experimental = true;    % Dados experimentais
 %% SIMULAÇÃO DO MODELO - ENTRADA DEGRAU
 
 % Tempo total de simulação
-t_final = 20;                           % [s]
+t_final = 45;                           % [s]
 
 % Tempo de amostragem
 tau = dados.geral.Ts;                  % [s]
 
 % Parâmetros do degrau de entrada
-amplitude_degrau = 200*12/255;         % [V]
-duracao_degrau   = 200/1000;           % [s]
+amplitude_degrau = -200*12/255;         % [V]
+duracao_degrau   = 500/1000;           % [s]
 
 % Condições iniciais
 x0 = [0 0 0 0];                        % [posição, ângulo, velocidade, vel. angular]
@@ -53,7 +53,7 @@ end
 
 % Conversão de unidades
 x(:,1) = x(:,1) * 100;         % m → cm
-x(:,2) = x(:,2) * (180/pi);    % rad → °
+x(:,2) = wrapTo360(x(:,2) * (180/pi));    % rad → °
 x(:,3) = x(:,3) * 100;         % m/s → cm/s
 x(:,4) = x(:,4) * (180/pi);    % rad/s → °/s
 
@@ -78,19 +78,19 @@ x2(:,4) = x2(:,4) * (180/pi);
 %% DADOS EXPERIMENTAIS
 
 % Importação dos dados experimentais
-importados = importdata('data\raw\dados_degrau_I200_D200_191254.csv');
+importados = importdata('data\raw\dados_degrau_I200_D500_16022026.csv');
 
-% Tempo normalizado
-t_import = importados(:,1) - importados(1,1);
+off_set = 101;
 
-% Estados medidos
-x_import = importados(:,2:5);
+t_import = importados(:,1) - importados(off_set,1);
+t_import = t_import/1000;
+t_import = t_import(off_set:end);
 
-% Organização dos sinais
-posicao_import       = x_import(:,3) * 100;   % cm
-angulo_import        = x_import(:,1);         % °
-velocidade_import    = x_import(:,4) * 100;   % cm/s
-vel_angular_import   = x_import(:,2);         % °/s
+angulo_import      = importados(off_set:end,2);
+vel_angular_import = importados(off_set:end,3);
+posicao_import     = importados(off_set:end,4);
+velocidade_import  = importados(off_set:end,5);
+u_import           = importados(off_set:end,6);
 
 %% PLOT DOS RESULTADOS (DINÂMICO)
 
@@ -109,7 +109,7 @@ if plot_continuo
     plot(t2, x2(:,1), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,1), '--', 'LineWidth', 1.2);
+    stairs(t, x(:,1), 'LineWidth', 1.2);
 end
 
 legend_entries = {};
@@ -131,7 +131,7 @@ if plot_continuo
     plot(t2, x2(:,2), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,2), '--');
+    stairs(t, x(:,2));
 end
 
 legend(legend_entries);
@@ -149,7 +149,7 @@ if plot_continuo
     plot(t2, x2(:,3), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,3), '--');
+    stairs(t, x(:,3));
 end
 
 legend(legend_entries);
@@ -167,7 +167,7 @@ if plot_continuo
     plot(t2, x2(:,4), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,4), '--');
+    stairs(t, x(:,4));
 end
 
 legend(legend_entries);

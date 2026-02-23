@@ -27,7 +27,7 @@ t_final   = 90;                    % Tempo total de simulação [s]
 tau       = dados.geral.Ts;        % Tempo de amostragem [s]
 amplitude = 200*12/255;            % Amplitude da senoide [V]
 duracao   = 2500/1000;             % Duração do sinal [s]
-frequencia = 2;                    % Frequência da senoide [Hz]
+frequencia = 1;                    % Frequência da senoide [Hz]
 
 % Condições iniciais
 x0 = [0 0 0 0];                    % [posição, ângulo, velocidade, vel. angular]
@@ -78,9 +78,9 @@ x2(:,4) = x2(:,4) * (180/pi);
 
 %% DADOS EXPERIMENTAIS (OPCIONAL)
 
-importados = importdata('data\raw\dados_senoide_I200_F2_D2500.csv');
+importados = importdata('data\raw\dados_senoide_I200_F1_D2500.csv');
 
-off_set = 125;
+off_set = 138;
 
 t_import = importados(:,1) - importados(off_set,1);
 t_import = t_import/1000;
