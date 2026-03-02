@@ -4,6 +4,8 @@ Carrega arquivo CSV e gera gráficos e estatísticas
 """
 
 import pandas as pd
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
@@ -156,6 +158,11 @@ def criar_graficos(df):
     ax9.set_title('Distribuição do Ângulo', fontsize=12, fontweight='bold')
     ax9.grid(True, alpha=0.3, axis='y')
     
+    print("Plotando figura...")
+    plt.tight_layout()
+    plt.draw()
+    plt.pause(0.5)
+
     plt.tight_layout()
     plt.show()
 
@@ -232,11 +239,11 @@ def calcular_metricas_controle(df):
     print(f"RMS do ângulo: {rms_theta:.2f}°")
     
     # Integral do erro absoluto
-    iae = np.trapz(np.abs(theta), t)
+    iae = np.trapezoid(np.abs(theta), t)
     print(f"IAE (Integral Absolute Error): {iae:.2f}")
     
     # Integral do erro quadrático
-    ise = np.trapz(theta**2, t)
+    ise = np.trapezoid(theta**2, t)
     print(f"ISE (Integral Square Error): {ise:.2f}")
     
     # Variação da posição do carrinho
