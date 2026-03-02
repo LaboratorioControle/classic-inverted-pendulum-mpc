@@ -5,7 +5,7 @@
 % - Swing-Up baseado em energia para levar o pêndulo à região próxima
 % - MPC com restrições para estabilização em torno da posição invertida
 
-clear;
+%clear;
 run init_project;
 %close all;
 clc;
@@ -24,7 +24,7 @@ comando_limite = 12;               % tensão máxima [V]
 
 % Condições iniciais
 pos_inicial = 0;
-ang_inicial = 0*(pi/180);
+ang_inicial = 180*(pi/180);
 
 % Setpoint
 pos_spt = 0/100;
@@ -37,7 +37,7 @@ qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
-dados.controlador.energia.k = 30;   % ganho da lei de energia
+dados.controlador.energia.k = 60;   % ganho da lei de energia
 dados.controlador.energia.n = 1;    % parâmetro reservado
 
 %% 3. DEFINIÇÃO DO MPC COM RESTRIÇÕES
@@ -52,7 +52,7 @@ MPC.Cr = [1 0 0 0;
           0 1 0 0];
 
 % Pesos do custo
-MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
+MPC.Qy = diag([320 120]);   % penalização dos estados rastreados
 MPC.Qu = 0.001;            % penalização do esforço de controle
 MPC.N  = 35;                % horizonte de predição
 
@@ -70,8 +70,8 @@ MPC.umax =  comando_limite;
 
 % Restrições sobre incremento de controle (não ativas)
 MPC.ulast    = 0;
-MPC.deltamin = -1e5;
-MPC.deltamax =  1e5;
+MPC.deltamin = -1e1;
+MPC.deltamax =  1e1;
 
 % Cálculo das matrizes do problema QP
 MPC = compute_MPC_Matrices(MPC);
@@ -126,15 +126,15 @@ QP = [];
 for i = 1 : nt - MPC.N
 
     % Distúrbio aplicado aos 15 s
-    %if lest(i) == 15.0
-    %    lesx(i,4) = lesx(i,4) - 65*pi/180;
-    %end
-
-    if i == 1
-        lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
+    if lest(i) == 10.0
+        lesx(i,4) = lesx(i,4) - 45*pi/180;
     end
 
-    usar_MPC = (abs(lesx(i,2) - pi) < 15*pi/180) && ...
+    %if i == 1
+    %    lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
+    %end
+
+    usar_MPC = (abs(lesx(i,2) - pi) < 18*pi/180) && ...
                 (abs(lesx(i,4))      < 100*pi/180);
 
     if usar_MPC
@@ -197,12 +197,12 @@ for i = 1 : nt - MPC.N
     lesy(i+1,:)  = MPC.Cr * xplus';
 end
 
-posicao = lesx(1:nt-MPC.N,1).*100;
-angulo = lesx(1:nt-MPC.N,2).*180/pi;
-velocidade = lesx(1:nt-MPC.N,3).*100;
-vel_angular = lesx(1:nt-MPC.N,4).*180/pi;
-tempo = lest(1:nt-MPC.N);
-comando = lesu(1:nt-MPC.N);
+simulacao.mpc.exp.posicao = lesx(1:nt-MPC.N,1).*100;
+simulacao.mpc.exp.angulo = lesx(1:nt-MPC.N,2).*180/pi;
+simulacao.mpc.exp.velocidade = lesx(1:nt-MPC.N,3).*100;
+simulacao.mpc.exp.vel_angular = lesx(1:nt-MPC.N,4).*180/pi;
+simulacao.mpc.exp.tempo = lest(1:nt-MPC.N);
+simulacao.mpc.exp.comando = lesu(1:nt-MPC.N);
 
 dados.controlador.MPC.ComRestricoes = MPC;
 
@@ -212,7 +212,7 @@ figure('Name','Posição e Vel. Linear','Color','w')
 
 % ---------------- POSIÇÃO DO CARRINHO ----------------
 subplot(2,1,1)
-plot(tempo, posicao, 'LineWidth', 1.5)
+plot(simulacao.mpc.exp.tempo, simulacao.mpc.exp.posicao, 'LineWidth', 1.5)
 hold on
 yline( pos_limite*100, '--r')
 yline(-pos_limite*100, '--r')
@@ -222,7 +222,7 @@ title('Resposta do Sistema – MPC + Swing-Up')
 
 % ---------------- VELOCIDADE DO CARRINHO ----------------
 subplot(2,1,2)
-plot(tempo, velocidade, 'LineWidth', 1.5)
+plot(simulacao.mpc.exp.tempo, simulacao.mpc.exp.velocidade, 'LineWidth', 1.5)
 hold on
 yline( vel_limite*100, '--r')
 yline(-vel_limite*100, '--r')
@@ -234,7 +234,7 @@ ylabel('Velocidade [cm/s]')
 figure('Name','Ângulo e Vel. Angular','Color','w')
 
 subplot(2,1,1)
-plot(tempo, angulo, 'LineWidth', 1.5)
+plot(simulacao.mpc.exp.tempo, simulacao.mpc.exp.angulo, 'LineWidth', 1.5)
 hold on
 yline( ang_limite*180/pi + 180, '--r')
 yline(-ang_limite*180/pi + 180, '--r')
@@ -243,7 +243,7 @@ ylabel('Ângulo [graus]')
 
 % ---------------- VELOCIDADE ANGULAR ----------------
 subplot(2,1,2)
-plot(tempo, vel_angular, 'LineWidth', 1.5)
+plot(simulacao.mpc.exp.tempo, simulacao.mpc.exp.vel_angular, 'LineWidth', 1.5)
 grid on
 ylabel('Vel. Angular [graus/s]')
 xlabel('Tempo [s]')
@@ -251,7 +251,7 @@ xlabel('Tempo [s]')
 % ---------------- SINAL DE CONTROLE -----------------
 
 figure('Name','Sinal de Controle','Color','w')
-plot(tempo, comando, 'LineWidth', 1.5)
+plot(simulacao.mpc.exp.tempo, simulacao.mpc.exp.comando, 'LineWidth', 1.5)
 hold on
 yline( comando_limite, '--r')
 yline(-comando_limite, '--r')
