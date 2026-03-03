@@ -1,29 +1,5 @@
 #include "MPC.h"
 
-Matrix eye(int n_){ Matrix I(n_,n_); for(int i=0;i<n_;i++) I(i,i)=1.0; return I; }
-Matrix zeros(int r, int c){ return Matrix(r,c,0.0); }
-
-Matrix transpose(const Matrix& A){ Matrix B(A.c, A.r); for(int i=0;i<A.r;i++) for(int j=0;j<A.c;j++) B(j,i)=A(i,j); return B; }
-
-Matrix operator+(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]+B.d[i]; return C; }
-Matrix operator-(const Matrix& A, const Matrix& B){ assert(A.r==B.r && A.c==B.c); Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=A.d[i]-B.d[i]; return C; }
-
-Matrix mul(const Matrix& A, const Matrix& B){ assert(A.c==B.r); Matrix C(A.r,B.c,0.0); for(int i=0;i<A.r;i++) for(int k=0;k<A.c;k++){ float aik=A(i,k); for(int j=0;j<B.c;j++) C(i,j)+=aik * B(k,j); } return C; }
-
-Matrix smul(float s, const Matrix& A){ Matrix C(A.r,A.c); for(int i=0;i<A.r*A.c;i++) C.d[i]=s*A.d[i]; return C; }
-
-void insertBlock(Matrix& dst, int r0, int c0, const Matrix& src){
-    assert(r0+src.r <= dst.r && c0+src.c <= dst.c);
-    for(int i=0;i<src.r;i++) for(int j=0;j<src.c;j++) dst(r0+i,c0+j)=src(i,j);
-}
-
-Matrix P_i(int i, int n1, int N_){
-    Matrix f(n1, N_*n1, 0.0);
-    // block columns (i-1)*n1 to i*n1-1
-    for(int r=0;r<n1;r++) f(r,(i-1)*n1 + r) = 1.0;
-    return f;
-}
-
 MPC::MPC(MPCForm form, int nWSR){
     this->nWSR = nWSR;
     this->form_ = form;
@@ -65,53 +41,53 @@ void MPC::compute_MPC_Matrices(float* lambda, float alpha, float tau){
 }
 
 void MPC::compute_Cost_Matrices(){
-    int nH = N*nu;
-    Matrix H_temp = zeros(nH, nH);
-    Matrix F1_temp = zeros(nH, n);
-    Matrix F2_temp = zeros(nH, N*ny);
-    Matrix F3_temp = zeros(nH, nu);
+
+    Matrix H_temp = Matrix::zeros(nU, nU);
+    Matrix F1_temp = Matrix::zeros(nU, n);
+    Matrix F2_temp = Matrix::zeros(nU, N*ny);
+    Matrix F3_temp = Matrix::zeros(nU, nu);
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
 
     for(int i=1;i<=N;i++){
 
         // Psi_i = [inter_Psi_i zeros(n, (N-i)*nu)];
-        Matrix Psi_i(n, N*nu, 0.0);
-        insertBlock(Psi_i, 0, 0, inter_Psi_i);
-        Matrix Pi_nu_N = P_i(i, nu, N);
-        Matrix Pi_ny_N = P_i(i, ny, N);
+        Matrix Psi_i(n, nU, 0.0);
+        Matrix::insertBlock(Psi_i, 0, 0, inter_Psi_i);
+
+        Matrix Pi_nu_N = Matrix::P_i(i, nu, N);
+        Matrix Pi_ny_N = Matrix::P_i(i, ny, N);
 
         // H = H + (Cr*Psi_i)'*Qy*Cr*Psi_i + Pi_nu_N'*Qu*Pi_nu_N;
-        Matrix CrPsi = mul(Cr, Psi_i);
-        Matrix CrPsiT = transpose(CrPsi);
-        Matrix term1 = mul(mul(CrPsiT, Qy), CrPsi);
-        Matrix PiTQuPi = mul(mul(transpose(Pi_nu_N), Qu), Pi_nu_N);
-        H_temp = H_temp+ term1 + PiTQuPi;
+        Matrix CrPsi = Matrix::mul(Cr, Psi_i);
+        Matrix CrPsiT = Matrix::transpose(CrPsi);
+        Matrix term1 = Matrix::mul(Matrix::mul(CrPsiT, Qy), CrPsi);
+        Matrix PiTQuPi = Matrix::mul(Matrix::mul(Matrix::transpose(Pi_nu_N), Qu), Pi_nu_N);
+        H_temp = H_temp + term1 + PiTQuPi;
 
         // F1 = F1 + Psi_i'*Cr'*Qy*Cr*Phi_i;
-        Matrix termF1 = mul(mul(transpose(Psi_i), transpose(Cr)), mul(Qy, mul(Cr, Phi_i)));
+        Matrix termF1 = Matrix::mul(Matrix::mul(Matrix::transpose(Psi_i), Matrix::transpose(Cr)), Matrix::mul(Qy, Matrix::mul(Cr, Phi_i)));
         F1_temp = F1_temp + termF1;
 
         // F2 = F2 - Psi_i'*Cr'*Qy*Pi_ny_N;
-        Matrix termF2 = mul(mul(transpose(Psi_i), transpose(Cr)), mul(Qy, Pi_ny_N));
-        // subtract
-        for(int rr=0; rr<F2_temp.r; ++rr) for(int cc=0; cc<F2_temp.c; ++cc) F2_temp(rr,cc) -= termF2(rr,cc);
+        Matrix termF2 = Matrix::mul(Matrix::mul(Matrix::transpose(Psi_i), Matrix::transpose(Cr)), Matrix::mul(Qy, Pi_ny_N));
+        F2_temp = F2_temp - termF2;
 
         // F3 = F3 + Pi_nu_N'*Qu;
-        Matrix termF3 = mul(transpose(Pi_nu_N), Qu);
+        Matrix termF3 = Matrix::mul(Matrix::transpose(Pi_nu_N), Qu);
         F3_temp = F3_temp + termF3;
-        // update
-        Phi_i = mul(Phi_i, A);
 
-        // inter_Psi_i = [A*inter_Psi_i B]; horizontally appended
-        Matrix A_inter = mul(A, inter_Psi_i);
+        Phi_i = Matrix::mul(Phi_i, A);
+
+        // inter_Psi_i = [A*inter_Psi_i B];
+        Matrix A_inter = Matrix::mul(A, inter_Psi_i);
         Matrix new_inter(n, inter_Psi_i.c + B.c, 0.0);
-        insertBlock(new_inter, 0, 0, A_inter);
-        insertBlock(new_inter, 0, A_inter.c, B);
+        Matrix::insertBlock(new_inter, 0, 0, A_inter);
+        Matrix::insertBlock(new_inter, 0, A_inter.c, B);
         inter_Psi_i = new_inter;
-
     }
 
+    // Conversão para vetores Row-Major
     matrix_to_realt(H_temp, H);
     matrix_to_realt(F1_temp, F1);
     matrix_to_realt(F2_temp, F2);
@@ -126,7 +102,7 @@ void MPC::compute_Cost_Matrices(){
 
 void MPC::compute_Constraints_Matrices(){
     // Translates compute_constraits_matrices
-    if(Dc.r==0) Dc = zeros(Cc.r, B.c);
+    if(Dc.r==0) Dc = Matrix::zeros(Cc.r, B.c);
     std::vector<float> interPinuN(N*nu*N*nu, 0.0); // large zero matrix flattened (but we only slice)
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
@@ -140,12 +116,12 @@ void MPC::compute_Constraints_Matrices(){
     for(int i=1;i<=N;i++){
         // Psi_i = [inter_Psi_i zeros(n,(N-i)*nu)];
         Matrix Psi_i(n, N*nu, 0.0);
-        insertBlock(Psi_i, 0, 0, inter_Psi_i);
+        Matrix::insertBlock(Psi_i, 0, 0, inter_Psi_i);
         // Pi_nuN slice: MATLAB used a big zero matrix interPinuN and slices rows
         // In this translation Pi_nuN acts like zeros; so Pi_nuN is zeros(n, N*nu) except maybe later usage
         Matrix Pi_nuN(n, N*nu, 0.0);
         // row Aineq1: Cc*Psi_i + Dc*Pi_nuN
-        Matrix rowA = mul(Cc, Psi_i);
+        Matrix rowA = Matrix::mul(Cc, Psi_i);
         // convert rowA to rows
         for(int rr=0; rr<rowA.r; ++rr){
             std::vector<float> row(rowA.c);
@@ -165,7 +141,7 @@ void MPC::compute_Constraints_Matrices(){
             for(int k=0;k<N*nu;k++) rows_Aineq2.back()[k] += row_prev[k];
         }
         // G1_1 accumulate: -Cc*Phi_i (each adds nc x n rows)
-        Matrix G1row = smul(-1.0, mul(Cc, Phi_i));
+        Matrix G1row = Matrix::smul(-1.0, Matrix::mul(Cc, Phi_i));
         for(int rr=0; rr<G1row.r; ++rr){
             std::vector<float> rown(n);
             for(int cc=0; cc<n; ++cc) rown[cc] = G1row(rr,cc);
@@ -179,11 +155,11 @@ void MPC::compute_Constraints_Matrices(){
         for(int rr=0; rr<deltamax.r; ++rr) G3_21_v.push_back(deltamax(rr,0));
         for(int rr=0; rr<deltamin.r; ++rr) G3_22_v.push_back(-deltamin(rr,0));
         // update
-        Phi_i = mul(Phi_i, A);
-        Matrix A_inter = mul(A, inter_Psi_i);
+        Phi_i = Matrix::mul(Phi_i, A);
+        Matrix A_inter = Matrix::mul(A, inter_Psi_i);
         Matrix new_inter(n, inter_Psi_i.c + B.c, 0.0);
-        insertBlock(new_inter, 0, 0, A_inter);
-        insertBlock(new_inter, 0, A_inter.c, B);
+        Matrix::insertBlock(new_inter, 0, 0, A_inter);
+        Matrix::insertBlock(new_inter, 0, A_inter.c, B);
         inter_Psi_i = new_inter;
     }
     // After loop: Aineq_1 = [Aineq_1; -Aineq_1]; Aineq_2 = [Aineq_2; -Aineq_2]
@@ -201,9 +177,9 @@ void MPC::compute_Constraints_Matrices(){
     // Combine
     Matrix Aineq_temp = Matrix(A1.r + A2.r, A1.c, 0.0);
     // insert A1 at top
-    insertBlock(Aineq_temp, 0, 0, A1);
+    Matrix::insertBlock(Aineq_temp, 0, 0, A1);
     // insert A2 after A1
-    insertBlock(Aineq_temp, A1.r, 0, A2);
+    Matrix::insertBlock(Aineq_temp, A1.r, 0, A2);
     // G1_1 doubled and then G1 built with zeros bottom
     int g1rows = rows_G1_1.size();
     Matrix G1dup(g1rows*2, n, 0.0);
@@ -221,11 +197,11 @@ void MPC::compute_Constraints_Matrices(){
     std::vector<float> G3_2_v; G3_2_v.insert(G3_2_v.end(), G3_21_v.begin(), G3_21_v.end()); G3_2_v.insert(G3_2_v.end(), G3_22_v.begin(), G3_22_v.end());
     // G1 = [G1_1; zeros(2*N*nu,n)];
     Matrix G1_temp = Matrix(G1dup.r + 2*N*nu, n, 0.0);
-    insertBlock(G1_temp, 0, 0, G1dup);
+    Matrix::insertBlock(G1_temp, 0, 0, G1dup);
     // remaining rows zero already
     // G2 = [zeros(2*N*nc,nu); G2_2];
     Matrix G2_temp = Matrix(2*N*nc + G2_2.r, nu, 0.0);
-    insertBlock(G2_temp, 2*N*nc, 0, G2_2);
+    Matrix::insertBlock(G2_temp, 2*N*nc, 0, G2_2);
     // G3 = [G3_1; G3_2];
     int G3rows = G3_1_v.size() + G3_2_v.size();
     Matrix G3_temp = Matrix(G3rows, 1, 0.0);
@@ -498,16 +474,9 @@ void MPC::solver_qp(){
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
             qp_initialized = true;
-
-            //Serial.print("Init ");
-            //Serial.println((int)ret);
         } else{
             qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
-            //Serial.print("Hot ");
-            //Serial.println((int)ret);
         }
-
-
     }
 
     qp->getPrimalSolution(qp_opt);
