@@ -101,113 +101,130 @@ void MPC::compute_Cost_Matrices(){
 }
 
 void MPC::compute_Constraints_Matrices(){
-    // Translates compute_constraits_matrices
-    if(Dc.r==0) Dc = Matrix::zeros(Cc.r, B.c);
-    std::vector<float> interPinuN(N*nu*N*nu, 0.0); // large zero matrix flattened (but we only slice)
+    
+    if(Dc.r==0) 
+        Dc = Matrix::zeros(Cc.r, B.c);
+        
+    // Declaração das matrizes de restrição auxiliares
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
-    Matrix Aineq_1(0,0), Aineq_2(0,0);
-    Matrix G1_1(0, n);
-    std::vector<float> G3_11_v, G3_12_v, G3_21_v, G3_22_v;
-    // We'll accumulate rows into std::vector< vector<double> > and convert at end
-    std::vector<std::vector<float>> rows_Aineq1;
-    std::vector<std::vector<float>> rows_Aineq2;
-    std::vector<std::vector<float>> rows_G1_1;
-    for(int i=1;i<=N;i++){
+
+    // Pré-Alocação de Memória
+    Matrix Aineq_1(2*N*nc,nU, 0.0);
+    Matrix Aineq_2(2*N*nu,nU, 0.0);
+
+    Matrix G1_1(2*N*nc, n, 0.0);
+    Matrix G2_2(2*N*nu, nu, 0.0);
+    Matrix G3_1(2*N*nc, 1, 0.0);
+    Matrix G3_2(2*N*nu, 1, 0.0);
+
+    int rowA1 = 0;
+    int rowG1 = 0;
+    int rowG3_1 = 0;
+    int rowG3_2 = 0;
+
+    for (int i = 1; i <= N ; i++){
+
         // Psi_i = [inter_Psi_i zeros(n,(N-i)*nu)];
-        Matrix Psi_i(n, N*nu, 0.0);
+        Matrix Psi_i(n, nU, 0.0);
         Matrix::insertBlock(Psi_i, 0, 0, inter_Psi_i);
-        // Pi_nuN slice: MATLAB used a big zero matrix interPinuN and slices rows
-        // In this translation Pi_nuN acts like zeros; so Pi_nuN is zeros(n, N*nu) except maybe later usage
-        Matrix Pi_nuN(n, N*nu, 0.0);
-        // row Aineq1: Cc*Psi_i + Dc*Pi_nuN
-        Matrix rowA = Matrix::mul(Cc, Psi_i);
-        // convert rowA to rows
-        for(int rr=0; rr<rowA.r; ++rr){
-            std::vector<float> row(rowA.c);
-            for(int cc=0; cc<rowA.c; ++cc) row[cc] = rowA(rr,cc);
-            rows_Aineq1.push_back(row);
+
+        // Pi_nuN = interPinuN((i-1)*nu+1:i*nu,:);
+        Matrix Pi_nuN(nu, nU, 0.0);
+
+        // Aineq_1 = [Aineq_1;Cc*Psi_i+Dc*Pi_nuN];
+        Matrix CcPsi_iDcPi_nuN = Matrix::mul(Cc,Psi_i) + Matrix::mul(Dc,Pi_nuN);
+        Matrix::insertBlock(Aineq_1, rowA1, 0, CcPsi_iDcPi_nuN);
+        rowA1 += nc;
+
+        // ind1 = (i-1)*nu+1:i*nu;
+        // Aineq_2(ind1,ind1) = eye(nu);
+        Matrix::insertBlock(Aineq_2, (i-1)*nu, (i-1)*nu, Matrix::eye(nu));
+
+        // if (i>1)
+        //  ind2 = (i-2)*nu+1:(i-1)*nu;
+        //  Aineq_2(ind1,ind2) = -eye(nu);
+        // end
+        if (i > 1){
+            Matrix::insertBlock(Aineq_2, (i-1)*nu, (i-2)*nu, Matrix::smul(-1.0, Matrix::eye(nu)));
         }
-        // Aineq_2 building: banded identity and -identity between blocks (we'll build full matrix later)
-        // we'll push identity rows incrementally
-        // Build block row for this i of size N*nu (one-hot for this nu-block and negative for previous)
-        std::vector<float> row_id(N*nu, 0.0);
-        for(int j=0;j<nu;j++) row_id[(i-1)*nu + j] = 1.0;
-        rows_Aineq2.push_back(row_id);
-        if(i>1){
-            std::vector<float> row_prev(N*nu, 0.0);
-            for(int j=0;j<nu;j++) row_prev[(i-2)*nu + j] = -1.0;
-            // add to same row? MATLAB sets in columns; equivalent is to OR them: sum
-            for(int k=0;k<N*nu;k++) rows_Aineq2.back()[k] += row_prev[k];
-        }
-        // G1_1 accumulate: -Cc*Phi_i (each adds nc x n rows)
-        Matrix G1row = Matrix::smul(-1.0, Matrix::mul(Cc, Phi_i));
-        for(int rr=0; rr<G1row.r; ++rr){
-            std::vector<float> rown(n);
-            for(int cc=0; cc<n; ++cc) rown[cc] = G1row(rr,cc);
-            rows_G1_1.push_back(rown);
-        }
-        // G3 pieces are constraints bounds stacking
-        // MPC.ycmax, ycmin, deltamax, deltamin are assumed column vectors (nc x 1 or nu x1)
-        // stack them as scalars per row; in MATLAB they just concatenated the whole vectors
-        for(int rr=0; rr<ycmax.r; ++rr) G3_11_v.push_back(ycmax(rr,0));
-        for(int rr=0; rr<ycmin.r; ++rr) G3_12_v.push_back(-ycmin(rr,0));
-        for(int rr=0; rr<deltamax.r; ++rr) G3_21_v.push_back(deltamax(rr,0));
-        for(int rr=0; rr<deltamin.r; ++rr) G3_22_v.push_back(-deltamin(rr,0));
-        // update
+
+        // G1_1 = [G1_1;-Cc*Phi_i];
+        Matrix CcPhi_i= Matrix::smul(-1.0, Matrix::mul(Cc, Phi_i));
+        Matrix::insertBlock(G1_1, rowG1, 0, CcPhi_i);
+        rowG1 += nc;
+
+        // G3_11 = [G3_11; MPC.ycmax];
+        Matrix::insertBlock(G3_1, rowG3_1, 0, ycmax);
+        rowG3_1 += nc;
+
+        // G3_12 = [G3_12; -MPC.ycmin];
+        Matrix::insertBlock(G3_1, rowG3_1, 0, Matrix::smul(-1.0, ycmin));
+        rowG3_1 += nc;
+
+        // G3_21 = [G3_21; MPC.deltamax];
+        Matrix::insertBlock(G3_2, rowG3_2, 0, deltamax);
+        rowG3_2 += nu;
+
+        // G3_22 = [G3_22; -MPC.deltamin];
+        Matrix::insertBlock(G3_2, rowG3_2, 0, Matrix::smul(-1.0, deltamin));
+        rowG3_2 += nu;
+       
+        // Phi_i = Phi_i*A;
         Phi_i = Matrix::mul(Phi_i, A);
+
+        // inter_Psi_i = [A*inter_Psi_i B];
         Matrix A_inter = Matrix::mul(A, inter_Psi_i);
         Matrix new_inter(n, inter_Psi_i.c + B.c, 0.0);
         Matrix::insertBlock(new_inter, 0, 0, A_inter);
         Matrix::insertBlock(new_inter, 0, A_inter.c, B);
         inter_Psi_i = new_inter;
     }
-    // After loop: Aineq_1 = [Aineq_1; -Aineq_1]; Aineq_2 = [Aineq_2; -Aineq_2]
-    int rows1 = rows_Aineq1.size();
-    int cols1 = (rows1>0? rows_Aineq1[0].size():0);
-    Matrix A1(rows1*2, cols1, 0.0);
-    for(int i=0;i<rows1;i++) for(int j=0;j<cols1;j++) A1(i,j) = rows_Aineq1[i][j];
-    for(int i=0;i<rows1;i++) for(int j=0;j<cols1;j++) A1(rows1+i,j) = -rows_Aineq1[i][j];
-    int rows2 = rows_Aineq2.size();
-    int cols2 = (rows2>0? rows_Aineq2[0].size():0);
-    Matrix A2(rows2*2, cols2, 0.0);
-    for(int i=0;i<rows2;i++) for(int j=0;j<cols2;j++) A2(i,j) = rows_Aineq2[i][j];
-    for(int i=0;i<rows2;i++) for(int j=0;j<cols2;j++) A2(rows2+i,j) = -rows_Aineq2[i][j];
 
-    // Combine
-    Matrix Aineq_temp = Matrix(A1.r + A2.r, A1.c, 0.0);
-    // insert A1 at top
-    Matrix::insertBlock(Aineq_temp, 0, 0, A1);
-    // insert A2 after A1
-    Matrix::insertBlock(Aineq_temp, A1.r, 0, A2);
-    // G1_1 doubled and then G1 built with zeros bottom
-    int g1rows = rows_G1_1.size();
-    Matrix G1dup(g1rows*2, n, 0.0);
-    for(int i=0;i<g1rows;i++) for(int j=0;j<n;j++) G1dup(i,j) = rows_G1_1[i][j];
-    for(int i=0;i<g1rows;i++) for(int j=0;j<n;j++) G1dup(g1rows+i,j) = -rows_G1_1[i][j];
-    // G2_2 = [eye(nu); zeros((N-1)*nu, nu)]; then duplicated with negative
-    Matrix G2_2(2*N*nu, nu, 0.0);
-    // first block
-    for(int i=0;i<nu;i++) G2_2(i,i)=1.0;
-    // bottom negative block
-    for(int i=0;i<nu;i++) G2_2(N*nu + i, i) = -1.0;
-    // G3 build
-    // In MATLAB G3 = [G3_1; G3_2]; where G3_1 stacks ycmax and -ycmin, G3_2 stacks deltamax and -deltamin
-    std::vector<float> G3_1_v; G3_1_v.insert(G3_1_v.end(), G3_11_v.begin(), G3_11_v.end()); G3_1_v.insert(G3_1_v.end(), G3_12_v.begin(), G3_12_v.end());
-    std::vector<float> G3_2_v; G3_2_v.insert(G3_2_v.end(), G3_21_v.begin(), G3_21_v.end()); G3_2_v.insert(G3_2_v.end(), G3_22_v.begin(), G3_22_v.end());
+
+    // Aineq_1 = [Aineq_1; -Aineq_1];
+    for(int i=0;i<N*nc;i++)
+        for(int j=0;j<nU;j++)
+            Aineq_1(N*nc + i, j) = -Aineq_1(i,j);
+
+    // Aineq_2 = [Aineq_2; -Aineq_2];
+    for(int i=0;i<N*nu;i++)
+        for(int j=0;j<nU;j++)
+            Aineq_2(N*nu + i, j) = -Aineq_2(i,j);
+
+    // Aineq = [Aineq_1; Aineq_2];
+    Matrix Aineq_temp(nA, nU, 0.0);
+    Matrix::insertBlock(Aineq_temp, 0, 0, Aineq_1);
+    Matrix::insertBlock(Aineq_temp, Aineq_1.r, 0, Aineq_2);
+
+    // G1_1 = [G1_1; -G1_1];
+    for(int i=0;i<N*nc;i++)
+        for(int j=0;j<n;j++)
+            G1_1(N*nc + i, j) = -G1_1(i,j);
+
+    // G2_2 = [eye(nu); zeros((N-1)*nu,nu)];
+    Matrix::insertBlock(G2_2, 0, 0, Matrix::eye(nu));
+
+    // G2_2 = [G2_2; -G2_2];
+    for(int i=0;i<N*nu;i++)
+        for(int j=0;j<nu;j++)
+            G2_2(N*nu + i, j) = -G2_2(i,j);
+
+
     // G1 = [G1_1; zeros(2*N*nu,n)];
-    Matrix G1_temp = Matrix(G1dup.r + 2*N*nu, n, 0.0);
-    Matrix::insertBlock(G1_temp, 0, 0, G1dup);
-    // remaining rows zero already
-    // G2 = [zeros(2*N*nc,nu); G2_2];
-    Matrix G2_temp = Matrix(2*N*nc + G2_2.r, nu, 0.0);
-    Matrix::insertBlock(G2_temp, 2*N*nc, 0, G2_2);
-    // G3 = [G3_1; G3_2];
-    int G3rows = G3_1_v.size() + G3_2_v.size();
-    Matrix G3_temp = Matrix(G3rows, 1, 0.0);
-    for(int i=0;i<G3_1_v.size();++i) G3_temp(i,0) = G3_1_v[i];
-    for(int i=0;i<G3_2_v.size();++i) G3_temp(G3_1_v.size()+i, 0) = G3_2_v[i];
+    Matrix G1_temp(nA, n, 0.0);
+    Matrix::insertBlock(G1_temp, 0, 0, G1_1);
 
+    // G2 = [zeros(2*N*nc,nu); G2_2];
+    Matrix G2_temp(nA, nu, 0.0);
+    Matrix::insertBlock(G2_temp, 2*N*nc, 0, G2_2);
+
+    // G3 = [G3_1; G3_2];
+    Matrix G3_temp(nA, 1, 0.0);
+    Matrix::insertBlock(G3_temp, 0, 0, G3_1);
+    Matrix::insertBlock(G3_temp, G3_1.r, 0, G3_2);
+
+    // Transformação do tipo Matrix para o tipo realt Row-Major
     matrix_to_realt(Aineq_temp, Aineq);
     matrix_to_realt(G1_temp, G1);
     matrix_to_realt(G2_temp, G2);
@@ -220,7 +237,7 @@ void MPC::compute_Constraints_Matrices(){
         compute_Aineq_reduced(Pi_e);
     }
 
-
+    // Computa as matrizes de restrição das variáveis de comando
     int k = 0;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < nu; j++) {
@@ -230,7 +247,6 @@ void MPC::compute_Constraints_Matrices(){
         }
     }
 }
-
 
 // Matrizes reduzidas para parametrização
 void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
@@ -527,116 +543,3 @@ float* MPC::compute_MPC_Command(float ulast, float* spt, float* err){
     
     return u_;
 }
-
-#include <fstream>
-#include <iostream>
-
-#ifdef MPC_TEST_MAIN
-int main(){
-
-    std::ofstream file("matrizes_mpc.csv");
-    std::streambuf* oldCout = std::cout.rdbuf(); // guarda cout original
-    std::cout.rdbuf(file.rdbuf());               // redireciona para o arquivo
-
-    #ifndef M_PI
-    #define M_PI 3.14159265358979323846
-    #endif
-
-    MPC mpc;
-
-    // =========================
-    // MATRIZES DO MODELO
-    // =========================
-    mpc.A = Matrix(4,4);
-    mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0000; mpc.A(0,2)=0.0091;  mpc.A(0,3)=0.0000;
-    mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0022; mpc.A(1,2)=-0.0039; mpc.A(1,3)=0.0100;
-    mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0044; mpc.A(2,2)=0.8224;  mpc.A(2,3)=0.0000;
-    mpc.A(3,0)=0.0000; mpc.A(3,1)=0.4346; mpc.A(3,2)=-0.7526; mpc.A(3,3)=1.0021;
-
-    mpc.B = Matrix(4,1);
-    mpc.B(0,0)=0.0000;
-    mpc.B(1,0)=0.0001;
-    mpc.B(2,0)=0.0068;
-    mpc.B(3,0)=0.0288;
-
-    // =========================
-    // MATRIZ DE SAÍDA
-    // =========================
-    mpc.Cr = Matrix(2,4);
-    mpc.Cr(0,0)=1; mpc.Cr(0,1)=0; mpc.Cr(0,2)=0; mpc.Cr(0,3)=0;
-    mpc.Cr(1,0)=0; mpc.Cr(1,1)=1; mpc.Cr(1,2)=0; mpc.Cr(1,3)=0;
-
-    mpc.Cc = Matrix(3,4);
-    mpc.Cc(0,0)=1; mpc.Cc(0,1)=0; mpc.Cc(0,2)=0; mpc.Cc(0,3)=0;
-    mpc.Cc(1,0)=0; mpc.Cc(1,1)=1; mpc.Cc(1,2)=0; mpc.Cc(1,3)=0;
-    mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
-
-    // =========================
-    // PESOS DO MPC
-    // =========================
-    mpc.Qy = zeros(2,2);
-    mpc.Qy(0,0) = 50;
-    mpc.Qy(1,1) = 10;
-
-    mpc.Qu = Matrix(1,1);
-    mpc.Qu(0,0) = 0.001;
-
-    mpc.N = 35;
-
-    // =========================
-    // LIMITES
-    // =========================
-    float pos_limite = 20.0/100.0;
-    float ang_limite = 12.0 * (M_PI/180.0);
-    float vel_limite = 45.0/100.0;
-    float comando_limite = 12.0;
-
-    mpc.ycmax = Matrix(3,1);
-    mpc.ycmax(0,0)= pos_limite;
-    mpc.ycmax(1,0)= ang_limite;
-    mpc.ycmax(2,0)= vel_limite;
-
-    mpc.ycmin = Matrix(3,1);
-    mpc.ycmin(0,0)= -pos_limite;
-    mpc.ycmin(1,0)= -ang_limite;
-    mpc.ycmin(2,0)= -vel_limite;
-
-    mpc.umax = Matrix(1,1); 
-    mpc.umax(0,0) = comando_limite;
-
-    mpc.umin = Matrix(1,1); 
-    mpc.umin(0,0) = -comando_limite;
-
-    mpc.deltamax = Matrix(1,1); 
-    mpc.deltamax(0,0) = 1e5;
-
-    mpc.deltamin = Matrix(1,1); 
-    mpc.deltamin(0,0) = -1e5;
-
-    // =========================
-    // CALCULA MATRIZES
-    // =========================
-    mpc.compute_MPC_Matrices();
-
-    // =========================
-    // PRINT
-    // =========================
-    //mpc.printMatrix("H", mpc.H);
-    //mpc.printMatrix("F1", mpc.F1);
-    //mpc.printMatrix("F2", mpc.F2);
-    //mpc.printMatrix("F3", mpc.F3);
-    //mpc.printMatrix("Aineq", mpc.Aineq);
-    //mpc.printMatrix("G1", mpc.G1);
-    //mpc.printMatrix("G2", mpc.G2);
-    //mpc.printMatrix("G3", mpc.G3);
-
-    std::cout.rdbuf(oldCout);  // restaura o cout pro normal
-    file.close();
-
-    return 0;
-}
-#endif
-
-
-
-// FIM

@@ -1,8 +1,6 @@
 #ifndef MPC_H
 #define MPC_H
 
-#include <vector>
-#include <Arduino.h>
 #include <qpOASES.hpp>
 #include <Matrix.h>
 
@@ -52,7 +50,7 @@ public:
     float* compute_MPC_Command(float ulast, float* spt, float* err);
 
     private:
-
+    
     // Ponteiro do otimizador qpOASES (Iniciado no construtor)
     qpOASES::QProblem *qp = nullptr;
     // Flag para guardar a inicialização do otimizador
