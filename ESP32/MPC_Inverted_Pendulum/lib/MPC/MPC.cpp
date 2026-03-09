@@ -402,7 +402,7 @@ void MPC::compute_Pi_e(float* lambda, float alpha, float tau){
     }
 }
 
-void MPC::generate_yref(const float* spt, qpOASES::real_t* yref) {
+void MPC::generate_yref(const float* spt) {
     for (int k = 0; k < N; k++) {
         for (int j = 0; j < ny; j++) {
             yref[k * ny + j] = spt[j];
@@ -532,7 +532,7 @@ void MPC::compute_util_opt(){
 
 float* MPC::compute_MPC_Command(float ulast, float* spt, float* err){
     
-    generate_yref(spt, yref);
+    generate_yref(spt);
     
     build_cost_vector(err);
     build_constraints(err, ulast);
