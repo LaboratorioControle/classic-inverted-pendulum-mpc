@@ -3,6 +3,7 @@
 
 #include <qpOASES.hpp>
 #include <Matrix.h>
+#include <MessageHandling.hpp>
 
 /**
  * @file MPC.h
@@ -32,7 +33,7 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
-#define nre 7
+#define nre 6
 
 /// Total number of decision variables in the parameterized system.
 #define np (nu*nre) 
@@ -128,7 +129,7 @@ public:
      * @param form Type of MPC formulation
      * @param nWSR Maximum number of iterations for the QP solver
      */
-    MPC(MPCForm form = MPCForm::CLASSIC, int nWSR = 1000);
+    MPC(MPCForm form = MPCForm::CLASSIC, int nWSR = 30);
 
     /**
      * @brief Calculates all the matrices of the MPC (classic mode)
@@ -165,6 +166,16 @@ public:
      */
     float* compute_MPC_Command(float ulast, float* spt, float* err);
 
+    /**
+     * @brief Getter for the solver result code
+     *
+     * This function allows external access to the result code of the
+     * QP solver, which can be used for debugging and error handling.
+     *
+     * @return Integer representing the solver result code
+     */
+    int get_solver_result_code() const { return solver_result_code; }
+
     private:
     
     /// qpOASES optimizer pointer
@@ -172,6 +183,9 @@ public:
 
     /// Flag to save the initialization of the QP solver
     bool qp_initialized = false;
+
+    /// Solver result Code
+    int solver_result_code;
 
     /// Quantity of iterations of the optimizer
     int nWSR;

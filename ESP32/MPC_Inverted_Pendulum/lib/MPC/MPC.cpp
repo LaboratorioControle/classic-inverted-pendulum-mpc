@@ -17,7 +17,15 @@ void MPC::init_solver_qp(int size_qp){
 
     qpOASES::Options options;
     options.setToMPC();
-    options.terminationTolerance = 1e-4; 
+
+    // tolerâncias mais rígidas
+    options.terminationTolerance = 1e-8; 
+    //options.boundTolerance = 1e-6;
+
+    // melhora estabilidade numérica
+    //options.enableRegularisation = qpOASES::BT_TRUE;
+    //options.numRegularisationSteps = 1;
+
     options.printLevel = qpOASES::PL_NONE; 
     qp->setOptions(options);
 }
@@ -49,7 +57,7 @@ void MPC::compute_Cost_Matrices(){
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
 
-    for(int i=1;i<=N;i++){
+    for (int i = 1; i <= N; i++){
 
         // Psi_i = [inter_Psi_i zeros(n, (N-i)*nu)];
         Matrix Psi_i(n, nU, 0.0);
@@ -120,8 +128,6 @@ void MPC::compute_Constraints_Matrices(){
 
     int rowA1 = 0;
     int rowG1 = 0;
-    int rowG3_1 = 0;
-    int rowG3_2 = 0;
 
     for (int i = 1; i <= N ; i++){
 
@@ -155,20 +161,15 @@ void MPC::compute_Constraints_Matrices(){
         rowG1 += nc;
 
         // G3_11 = [G3_11; MPC.ycmax];
-        Matrix::insertBlock(G3_1, rowG3_1, 0, ycmax);
-        rowG3_1 += nc;
-
+        Matrix::insertBlock(G3_1, (i-1)*nc, 0, ycmax);
         // G3_12 = [G3_12; -MPC.ycmin];
-        Matrix::insertBlock(G3_1, rowG3_1, 0, Matrix::smul(-1.0, ycmin));
-        rowG3_1 += nc;
+        Matrix::insertBlock(G3_1, (N*nc) + (i-1)*nc, 0, Matrix::smul(-1.0, ycmin));
 
         // G3_21 = [G3_21; MPC.deltamax];
-        Matrix::insertBlock(G3_2, rowG3_2, 0, deltamax);
-        rowG3_2 += nu;
+        Matrix::insertBlock(G3_2, (i-1)*nu, 0, deltamax);
 
         // G3_22 = [G3_22; -MPC.deltamin];
-        Matrix::insertBlock(G3_2, rowG3_2, 0, Matrix::smul(-1.0, deltamin));
-        rowG3_2 += nu;
+        Matrix::insertBlock(G3_2, (N*nu) + (i-1)*nu, 0, Matrix::smul(-1.0, deltamin));
        
         // Phi_i = Phi_i*A;
         Phi_i = Matrix::mul(Phi_i, A);
@@ -267,8 +268,8 @@ void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
         }
     }
 
-    for (int i = 0; i < np; i++)
-        H_p[i*np + i] += 1e-6;
+    //for (int i = 0; i < np; i++)
+    //    H_p[i*np + i] += 1e-6;
 }
 
 void MPC::compute_F_reduced(qpOASES::real_t* Pi_ref){
@@ -422,6 +423,7 @@ void MPC::matrix_to_realt(const Matrix& M, qpOASES::real_t* result) {
 
 void MPC::build_cost_vector(float* err){
     // F = MPC.F1*err' + MPC.F2*yref_pred;
+
     for (int i = 0; i < N*nu; i++) {
         F[i] = 0.0f;
 
@@ -439,6 +441,7 @@ void MPC::build_cost_vector(float* err){
 
 void MPC::build_constraints(float* err, float ulast){
     //Bineq = MPC.G1*err' + MPC.G2*MPC.ulast + MPC.G3;
+
     for (int i = 0; i < nA; i++) {
         Bineq[i] = 0.0f;
 
@@ -466,8 +469,12 @@ void MPC::solver_qp(){
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR_);
             qp_initialized = true;
+
+            solver_result_code = (int) ret;
         } else{
             qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR_);
+
+            solver_result_code = (int) ret;
         }
 
     } else if(form_ == MPCForm::LINEAR){
@@ -478,8 +485,12 @@ void MPC::solver_qp(){
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
             qp_initialized = true;
+
+            solver_result_code = (int) ret;
         } else{
             qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+
+            solver_result_code = (int) ret;
         }
 
     } else if(form_ == MPCForm::EXPONENCIAL){
@@ -490,8 +501,20 @@ void MPC::solver_qp(){
         if(!qp_initialized){
             qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
             qp_initialized = true;
+
+            solver_result_code = (int) ret;
+
         } else{
             qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+
+            solver_result_code = (int) ret;
+
+            if(ret != qpOASES::SUCCESSFUL_RETURN) {
+                Serial.print("QP Error Code: ");
+                Serial.print((int)ret);
+                Serial.print(" - ");
+                Serial.println(qpOASES::MessageHandling::getErrorCodeMessage(ret));
+            }
         }
     }
 
