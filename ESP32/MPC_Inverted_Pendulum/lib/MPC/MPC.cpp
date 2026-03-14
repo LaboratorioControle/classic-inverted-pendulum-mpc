@@ -9,24 +9,19 @@ void MPC::compute_MPC_Matrices(){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
 
-    init_solver_qp(nU);
+    init_solver_qp(nU,nA);
 }
 
-void MPC::init_solver_qp(int size_qp){
-    qp = new qpOASES::QProblem(size_qp,nc);
+void MPC::init_solver_qp(int nv_decision, int nc_constraints){
+    qp = new qpOASES::QProblem(nv_decision, nc_constraints);
 
     qpOASES::Options options;
     options.setToMPC();
 
     // tolerâncias mais rígidas
     options.terminationTolerance = 1e-8; 
-    //options.boundTolerance = 1e-6;
-
-    // melhora estabilidade numérica
-    //options.enableRegularisation = qpOASES::BT_TRUE;
-    //options.numRegularisationSteps = 1;
-
     options.printLevel = qpOASES::PL_NONE; 
+    
     qp->setOptions(options);
 }
 
@@ -36,7 +31,7 @@ void MPC::compute_MPC_Matrices(float* pontos){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
 
-    init_solver_qp(np);
+    init_solver_qp(np, nAr);
 }
 
 void MPC::compute_MPC_Matrices(float* lambda, float alpha, float tau){
@@ -45,7 +40,7 @@ void MPC::compute_MPC_Matrices(float* lambda, float alpha, float tau){
     compute_Cost_Matrices();
     compute_Constraints_Matrices();
 
-    init_solver_qp(np);
+    init_solver_qp(np, nAr);
 }
 
 void MPC::compute_Cost_Matrices(){
@@ -463,6 +458,11 @@ void MPC::build_constraints(float* err, float ulast){
 void MPC::solver_qp(){
 
     int nWSR_ = nWSR;
+
+    // Verifica se o solver entrou em estado de falha
+    if (solver_result_code == 54) {
+        qp_initialized = false;
+    }
     
     if (form_ == MPCForm::CLASSIC) {
 
@@ -509,12 +509,12 @@ void MPC::solver_qp(){
 
             solver_result_code = (int) ret;
 
-            if(ret != qpOASES::SUCCESSFUL_RETURN) {
-                Serial.print("QP Error Code: ");
-                Serial.print((int)ret);
-                Serial.print(" - ");
-                Serial.println(qpOASES::MessageHandling::getErrorCodeMessage(ret));
-            }
+            // if(ret != qpOASES::SUCCESSFUL_RETURN) {
+            //     Serial.print("QP Error Code: ");
+            //     Serial.print((int)ret);
+            //     Serial.print(" - ");
+            //     Serial.println(qpOASES::MessageHandling::getErrorCodeMessage(ret));
+            // }
         }
     }
 

@@ -24,7 +24,7 @@
 #define n 4 
 
 /// Number of restricted exits
-#define nc 3  
+#define nc 1
 
 /// Number of regulated outputs
 #define ny 2 
@@ -33,7 +33,7 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
-#define nre 6
+#define nre 5
 
 /// Total number of decision variables in the parameterized system.
 #define np (nu*nre) 
@@ -212,7 +212,7 @@ public:
     qpOASES::real_t F[nU];
 
     /// Vector of constraints
-    qpOASES::real_t Bineq[2*n*N];
+    qpOASES::real_t Bineq[nA];
 
     /// Vector solution of the QP problem
     qpOASES::real_t qp_opt[nU];
@@ -232,6 +232,9 @@ public:
     /// Cost function matrices (calculated online)
     qpOASES::real_t utildemax[nU];
     qpOASES::real_t utildemin[nU]; 
+
+    qpOASES::real_t lb_p[np];
+    qpOASES::real_t ub_p[np];
 
     /// Auxiliary matrices for storing the first command of the calculated command signal sequence and the sequence itself
     qpOASES::real_t u_[nu];
@@ -336,9 +339,10 @@ public:
      * This function allocates and configures the qpOASES solver instance
      * according to the size of the quadratic programming problem.
      *
-     * @param size_qp Number of optimization variables in the QP problem.
+     * @param nv_decision Number of decision variables in the QP problem.
+     * @param nc_constraints Number of constraints in the QP problem.
      */
-    void init_solver_qp(int size_qp);
+    void init_solver_qp(int nv_decision, int nc_constraints);
 
     /**
      * @brief Initializes the QP solver parameters.
