@@ -33,6 +33,7 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
+// O adequado para o Linear é 5
 #define nre 5
 
 /// Total number of decision variables in the parameterized system.

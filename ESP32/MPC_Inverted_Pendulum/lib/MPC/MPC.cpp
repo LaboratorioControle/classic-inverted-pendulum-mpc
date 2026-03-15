@@ -19,7 +19,7 @@ void MPC::init_solver_qp(int nv_decision, int nc_constraints){
     options.setToMPC();
 
     // tolerâncias mais rígidas
-    options.terminationTolerance = 1e-8; 
+    options.terminationTolerance = 1e-4; 
     options.printLevel = qpOASES::PL_NONE; 
     
     qp->setOptions(options);

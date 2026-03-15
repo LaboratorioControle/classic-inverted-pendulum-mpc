@@ -49,6 +49,7 @@ volatile int lastEncodedMot = 0;
 
 const float FATOR_CONV_DIST = 145.366; //Pulsos pos cm
 
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // ==============================
 // VARIÁVEIS DOS SINAIS DE ENSAIO
@@ -80,13 +81,13 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {-15, 140, -80, 20};
-float K_swing = 60;
-float K_swing_pos = 0;
+float K_swing = 25;
+float K_swing_pos = 6;
 
 // Limiares de troca
-const float THETA_SWITCH = 12 * PI/180.0;       
+const float THETA_SWITCH = 15 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  23.0/100.0; 
+const float FIM_CURSO_VIRTUAL =  22.0/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -103,8 +104,8 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::EXPONENCIAL, 30);
-float pos_limite = 20.0/100.0;
+MPC mpc = MPC(MPCForm::CLASSIC, 14);
+float pos_limite = 15.0/100.0;
 float ang_limite = 10.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
@@ -115,17 +116,17 @@ float ulast = 0;
 // ==============================
 const float PERIODO = 10.0;  // ms
 
-const float m = 0.0669;       // Massa pêndulo
-const float l = 0.15;         // Distância até o centro de massa
+const float m = 0.0205;       // Massa pêndulo
+const float l = 0.18;         // Distância até o centro de massa
 const float g = 9.81;         // Gravidade
-const float I = 0.0013;     // Momento de Inércia
-const float M = 0.3725;       // Massa carrinho
-const float b = 0;     // Atrito viscoso do pêndulo
-const float c = 11.1755;          // Atrito viscoso do carrinho
-const float kt = 0.1749;       // Constante de torque do motor
-const float kb = 0.1115;        // Constante de força eletromotriz
-const float Rm = 11.8180;        // Resistência do motor
-const float r  = 0.0389;       // Raio da polia
+const float I = 0.000207;     // Momento de Inércia
+const float M = 0.3088;       // Massa carrinho
+const float b = 0.000008;     // Atrito viscoso do pêndulo
+const float c = 6.0;          // Atrito viscoso do carrinho
+const float kt = 0.175;       // Constante de torque do motor
+const float kb = 0.04;        // Constante de força eletromotriz
+const float Rm = 10.5;        // Resistência do motor
+const float r  = 0.071;       // Raio da polia
 const float guia = 30.0;      // Tamanho da guia (cm)
 
 
@@ -378,17 +379,17 @@ void setupMPC(){
   mpc.Cr(0,0)=1; mpc.Cr(0,1)=0; mpc.Cr(0,2)=0; mpc.Cr(0,3)=0;
   mpc.Cr(1,0)=0; mpc.Cr(1,1)=1; mpc.Cr(1,2)=0; mpc.Cr(1,3)=0;
 
-  mpc.Cc = Matrix(3,4);
+  mpc.Cc = Matrix(1,4);
   mpc.Cc(0,0)=1; mpc.Cc(0,1)=0; mpc.Cc(0,2)=0; mpc.Cc(0,3)=0;
-  mpc.Cc(1,0)=0; mpc.Cc(1,1)=1; mpc.Cc(1,2)=0; mpc.Cc(1,3)=0;
-  mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
+  //mpc.Cc(1,0)=0; mpc.Cc(1,1)=1; mpc.Cc(1,2)=0; mpc.Cc(1,3)=0;
+  //mpc.Cc(1,0)=0; mpc.Cc(1,1)=0; mpc.Cc(1,2)=1; mpc.Cc(1,3)=0;
 
   // =========================
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=520; mpc.Qy(0,1)=0;
-  mpc.Qy(1,0)=0; mpc.Qy(1,1)=150;
+  mpc.Qy(0,0)=400; mpc.Qy(0,1)=0;
+  mpc.Qy(1,0)=0; mpc.Qy(1,1)=100;
 
   mpc.Qu = Matrix(1,1);
   mpc.Qu(0,0) = 0.001;
@@ -396,15 +397,15 @@ void setupMPC(){
   // =========================
   // LIMITES
   // =========================
-  mpc.ycmax = Matrix(3,1);
+  mpc.ycmax = Matrix(1,1);
   mpc.ycmax(0,0)= pos_limite;
-  mpc.ycmax(1,0)= ang_limite;
-  mpc.ycmax(2,0)= vel_limite;
+  //mpc.ycmax(1,0)= ang_limite;
+  //mpc.ycmax(1,0)= vel_limite;
 
-  mpc.ycmin = Matrix(3,1);
+  mpc.ycmin = Matrix(1,1);
   mpc.ycmin(0,0)= -pos_limite;
-  mpc.ycmin(1,0)= -ang_limite;
-  mpc.ycmin(2,0)= -vel_limite;
+  //mpc.ycmin(1,0)= -ang_limite;
+  //mpc.ycmin(1,0)= -vel_limite;
 
   mpc.umax = Matrix(1,1); 
   mpc.umax(0,0) = comando_limite;
@@ -421,13 +422,14 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  //float pontos[7] = {1, 5, 10, 15, 20, 25, 30};
+  //float pontos[5] = {1, 7, 14, 21, 28};
   //mpc.compute_MPC_Matrices(pontos);
+  mpc.compute_MPC_Matrices();
 
-  float lambda[1] = {0.01f};
-  float alpha = 0.5f;
-  float tau = PERIODO/1000;
-  mpc.compute_MPC_Matrices(lambda, alpha, tau);
+  //float lambda[1] = {0.01f};
+  //float alpha = 0.8f;
+  //float tau = PERIODO/1000;
+ // mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
@@ -440,14 +442,28 @@ void controleEstadoMPC() {
   bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoMPC = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
-  if (emZonaPerigo){
-    u = - K[1] * erroX;
-  }else if(emRegiaoMPC){
+  if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
     float spt[2] = {set_point_x / 100.0f, 0.0f};
+
+    unsigned long tempo_inicio = micros();
     u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
+
+    unsigned long tempo_fim = micros();
+    unsigned long tempo_gasto = tempo_fim - tempo_inicio;
+
+    Serial.print("Tempo do solver (us): ");
+    Serial.println(tempo_gasto);
+
+    if (mpc.get_solver_result_code() != 0){
+        u = - K[1] * erroX;
+    }
   }else{
     u = swingUpController();
+
+    if(emZonaPerigo){
+      u = - K[1] * erroX;
+    }
   }
 
   u = constrain(u, -12.0, 12.0);
@@ -566,7 +582,7 @@ void gerenciaBotoes() {
     // ESTADO NORMAL
     // ===============================
     if (liga && !desliga) {
-        //K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
+        //K[0] = -112; K[1] = 215; K[2] = -106; K[3] = 34;
         //ativaControladorLQR();
         ativaControladorMPC();
     }
@@ -703,8 +719,10 @@ void taskLeitura(void *parameter) {
     tempo_s = millis() / 1000.0;
 
     // Cópias locais (evita conflito com interrupções)
+    portENTER_CRITICAL(&mux);
     long countMot = encoderMotCount;
     long countPend = encoderPendCount;
+    portEXIT_CRITICAL(&mux);
 
     // Cálculo da posição em metros e da velocidade em m/s
     x = (float) countMot / (FATOR_CONV_DIST * 100.0f);
@@ -955,8 +973,8 @@ void setup() {
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
-  xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
-  xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
+  //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
+  //xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 
 void loop() {
