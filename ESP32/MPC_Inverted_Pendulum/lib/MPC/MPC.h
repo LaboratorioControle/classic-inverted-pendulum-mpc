@@ -18,7 +18,7 @@
 
 
 /// MPC prediction horizon
-#define N 35
+#define N 33 // Exponencial: 33, Linear: 35, CLASSIC: 33
 
 /// Number of states in the system
 #define n 4 
@@ -27,7 +27,7 @@
 #define nc 1
 
 /// Number of regulated outputs
-#define ny 2 
+#define ny 2
 
 /// Number of inputs (control signals)
 #define nu 1
@@ -165,7 +165,7 @@ public:
      * @param err vector of system errors
      * @return pointer to the calculated control signal vector
      */
-    float* compute_MPC_Command(float ulast, float* spt, float* err);
+    float* compute_MPC_Command(float ulast, float* err);
 
     /**
      * @brief Getter for the solver result code
@@ -176,6 +176,21 @@ public:
      * @return Integer representing the solver result code
      */
     int get_solver_result_code() const { return solver_result_code; }
+
+       /**
+     * @brief Generates the reference trajectory over the prediction horizon.
+     *
+     * This function builds the reference vector used by the MPC controller
+     * along the prediction horizon. The reference trajectory is constructed
+     * from the setpoint vector provided by the user and stored in the
+     * internal vector yref.
+     *
+     * @param spt Pointer to the setpoint vector.
+     * @param yref_global Pointer to the global reference trajectory.
+     * @param idx_atual Current index in the global reference trajectory.
+     * @param usar_trajetoria Flag indicating whether to use the global trajectory.
+     */
+    void generate_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria);
 
     private:
     
@@ -240,18 +255,6 @@ public:
     /// Auxiliary matrices for storing the first command of the calculated command signal sequence and the sequence itself
     qpOASES::real_t u_[nu];
     qpOASES::real_t u_full[nU];
-
-    /**
-     * @brief Generates the reference trajectory over the prediction horizon.
-     *
-     * This function builds the reference vector used by the MPC controller
-     * along the prediction horizon. The reference trajectory is constructed
-     * from the setpoint vector provided by the user and stored in the
-     * internal vector yref.
-     *
-     * @param spt Pointer to the setpoint vector.
-     */
-    void generate_yref(const float* spt);
 
     /**
      * @brief Converts a Matrix object to a row-major vector of type real_t.

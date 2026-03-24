@@ -398,10 +398,28 @@ void MPC::compute_Pi_e(float* lambda, float alpha, float tau){
     }
 }
 
-void MPC::generate_yref(const float* spt) {
-    for (int k = 0; k < N; k++) {
-        for (int j = 0; j < ny; j++) {
-            yref[k * ny + j] = spt[j];
+void MPC::generate_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria) {
+
+    if (!usar_trajetoria) {
+        // 🔹 MODO ANTIGO (constante)
+        for (int k = 0; k < N; k++) {
+            for (int j = 0; j < ny; j++) {
+                yref[k * ny + j] = spt[j];
+            }
+        }
+
+    } else {
+        // 🔹 MODO TRAJETÓRIA (janela deslizante)
+        for (int k = 0; k < N; k++) {
+            for (int j = 0; j < ny; j++) {
+            
+                int idx_base = idx_atual + k + 1;
+            
+                int idx_global = idx_base * ny + j;
+                int idx_local  = k * ny + j;
+            
+                yref[idx_local] = yref_global[idx_global];
+            }
         }
     }
 }
@@ -553,9 +571,8 @@ void MPC::compute_util_opt(){
     }
 }
 
-float* MPC::compute_MPC_Command(float ulast, float* spt, float* err){
+float* MPC::compute_MPC_Command(float ulast, float* err){
     
-    generate_yref(spt);
     
     build_cost_vector(err);
     build_constraints(err, ulast);

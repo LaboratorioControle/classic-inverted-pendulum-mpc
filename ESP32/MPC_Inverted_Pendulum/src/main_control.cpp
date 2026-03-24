@@ -81,8 +81,8 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {-15, 140, -80, 20};
-float K_swing = 25;
-float K_swing_pos = 6;
+float K_swing = 20;
+float K_swing_pos = 8;
 
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
@@ -91,6 +91,7 @@ const float FIM_CURSO_VIRTUAL =  22.0/100.0;
 
 // Setpoint posição
 float set_point_x = 0.0;
+
 
 // Comando via botões físicos
 bool ajustandoPosicao = false; 
@@ -104,12 +105,21 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::CLASSIC, 14);
-float pos_limite = 15.0/100.0;
-float ang_limite = 10.0 * (PI/180.0);
+MPC mpc = MPC(MPCForm::CLASSIC, 15); //LINEAR = 8, EXPONENCIAL = 15, CLASSIC = 15 ou 6
+float pos_limite = 20.0/100.0;
+float ang_limite = 15.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
 float ulast = 0;
+
+int idx_traj = 0;
+float yref_global[2000 * 2]; // ny = 2 (posição, ângulo)
+int nt = 0;                    // tamanho da trajetória
+
+// Tempo para cálculo do sinal de controle do MPC
+float tempo_computacional = 0.0;
+float cod_resultado_mpc = 0.0;
+
 
 // ==============================
 // DADOS DA PLANTA
@@ -148,6 +158,9 @@ typedef struct {
   float x_cm;
   float x_dot_cm;
   float u;
+  float yref;
+  float tempo_computa;
+  float cod_result;
 } LogData;
 
 QueueHandle_t filaLog;
@@ -361,16 +374,16 @@ void setupMPC(){
   // MATRIZES DO MODELO
   // =========================
   mpc.A = Matrix(4,4);
-  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0000; mpc.A(0,2)=0.0086;  mpc.A(0,3)=0.0000;
-  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0019; mpc.A(1,2)=-0.0049; mpc.A(1,3)=0.0100;
-  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0075; mpc.A(2,2)=0.7379;  mpc.A(2,3)=0.0000;
-  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.3781; mpc.A(3,2)=-0.9383; mpc.A(3,3)=1.0019;
+  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0001; mpc.A(0,2)=0.0081;  mpc.A(0,3)=0.0000;
+  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0020; mpc.A(1,2)=-0.0070; mpc.A(1,3)=0.0100;
+  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0104; mpc.A(2,2)=0.6493;  mpc.A(2,3)=0.0001;
+  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.4062; mpc.A(3,2)=-1.3132; mpc.A(3,3)=1.0020;
 
   mpc.B = Matrix(4,1);
-  mpc.B(0,0)=0.0000;
-  mpc.B(1,0)=0.0002;
-  mpc.B(2,0)=0.0081;
-  mpc.B(3,0)=0.0291;
+  mpc.B(0,0)=0.0001;
+  mpc.B(1,0)=0.0003;
+  mpc.B(2,0)=0.0130;
+  mpc.B(3,0)=0.0486;
 
   // =========================
   // MATRIZ DE SAÍDA
@@ -381,14 +394,14 @@ void setupMPC(){
 
   mpc.Cc = Matrix(1,4);
   mpc.Cc(0,0)=1; mpc.Cc(0,1)=0; mpc.Cc(0,2)=0; mpc.Cc(0,3)=0;
-  //mpc.Cc(1,0)=0; mpc.Cc(1,1)=1; mpc.Cc(1,2)=0; mpc.Cc(1,3)=0;
   //mpc.Cc(1,0)=0; mpc.Cc(1,1)=0; mpc.Cc(1,2)=1; mpc.Cc(1,3)=0;
+  //mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
 
   // =========================
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=400; mpc.Qy(0,1)=0;
+  mpc.Qy(0,0)=500; mpc.Qy(0,1)=0; //LINEAR = 500, EXPONENCIAL = 500, CLASSICO = 600
   mpc.Qy(1,0)=0; mpc.Qy(1,1)=100;
 
   mpc.Qu = Matrix(1,1);
@@ -400,12 +413,12 @@ void setupMPC(){
   mpc.ycmax = Matrix(1,1);
   mpc.ycmax(0,0)= pos_limite;
   //mpc.ycmax(1,0)= ang_limite;
-  //mpc.ycmax(1,0)= vel_limite;
+  //mpc.ycmax(2,0)= vel_limite;
 
   mpc.ycmin = Matrix(1,1);
   mpc.ycmin(0,0)= -pos_limite;
   //mpc.ycmin(1,0)= -ang_limite;
-  //mpc.ycmin(1,0)= -vel_limite;
+  //mpc.ycmin(2,0)= -vel_limite;
 
   mpc.umax = Matrix(1,1); 
   mpc.umax(0,0) = comando_limite;
@@ -426,10 +439,10 @@ void setupMPC(){
   //mpc.compute_MPC_Matrices(pontos);
   mpc.compute_MPC_Matrices();
 
-  //float lambda[1] = {0.01f};
-  //float alpha = 0.8f;
-  //float tau = PERIODO/1000;
- // mpc.compute_MPC_Matrices(lambda, alpha, tau);
+  // float lambda[1] = {0.01f}; // Diretamente proporcional ao tempo de caimento
+  // float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
+  // float tau = PERIODO/1000;
+  // mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
@@ -444,29 +457,43 @@ void controleEstadoMPC() {
 
   if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
-    float spt[2] = {set_point_x / 100.0f, 0.0f};
+    //float spt[2] = {set_point_x / 100.0f, 0.0f};
+    //float spt[2] = {0 / 100.0f, 0.0f};
 
     unsigned long tempo_inicio = micros();
-    u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
+    //mpc.generate_yref(spt, NULL, 0, false);
+    mpc.generate_yref(NULL, yref_global, idx_traj, true);
+    u = mpc.compute_MPC_Command(ulast, estados)[0];
+
+
+     idx_traj++;
+      if (idx_traj >= nt)
+        idx_traj = nt - 1;
 
     unsigned long tempo_fim = micros();
-    unsigned long tempo_gasto = tempo_fim - tempo_inicio;
 
-    Serial.print("Tempo do solver (us): ");
-    Serial.println(tempo_gasto);
+    tempo_computacional = tempo_fim - tempo_inicio;
+    cod_resultado_mpc = mpc.get_solver_result_code();
+    //Serial.print(tempo_gasto);
+    //Serial.println(", " + String(mpc.get_solver_result_code()));
 
     if (mpc.get_solver_result_code() != 0){
         u = - K[1] * erroX;
+        u = constrain(u, -12.0, 12.0);
     }
   }else{
     u = swingUpController();
 
+    tempo_computacional = -1.0; // Indica que o MPC não foi executado
+    cod_resultado_mpc = -1.0;   // Indica que o MPC não foi executado
+
     if(emZonaPerigo){
       u = - K[1] * erroX;
     }
+
+    u = constrain(u, -12.0, 12.0);
   }
 
-  u = constrain(u, -12.0, 12.0);
   ulast = u;
   float u_pwm = (u / 12.0) * 255.0;
   
@@ -479,6 +506,26 @@ void controleEstadoMPC() {
   }
 }
 
+void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
+
+    nt = (int)(duracao_trajetoria / Ts);
+
+    float ref_offset = 0.0f; // posição central
+    float ref_amp = 0.15f; // amplitude de 15 cm
+    float ref_freq = 0.1f; // frequência de 0.1 Hz
+
+    for (int i = 0; i < nt; i++) {
+
+        float t = i * Ts;
+
+        float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+
+        yref_global[i * 2 + 0] = ref_x; // posição
+        yref_global[i * 2 + 1] = 0.0f;  // ângulo
+
+    }
+}
+
 void desativaControladorMPC(){
   controleMPCAtivo = false;
   ledcWrite(0, 0);
@@ -487,6 +534,9 @@ void desativaControladorMPC(){
 
 void ativaControladorMPC(){
   controleMPCAtivo = true;
+
+  idx_traj = 0;
+  gerarTrajetoriaSeno(20.0f, PERIODO / 1000.0f);
 
   if (theta <= 1e-2) {
     ledcWrite(1, 100);
@@ -764,6 +814,10 @@ void taskLeitura(void *parameter) {
     log.x_cm       = x * 100.0f;
     log.x_dot_cm   = x_dot * 100.0f;
     log.u = ulast;
+    //log.yref = set_point_x;
+    log.yref = yref_global[idx_traj * 2] * 100.0f;
+    log.tempo_computa = tempo_computacional;
+    log.cod_result = cod_resultado_mpc;
             
     // Envia para a fila (não bloqueia)
     xQueueSend(filaLog, &log, 0);
@@ -973,8 +1027,8 @@ void setup() {
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
+  xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 
 void loop() {
