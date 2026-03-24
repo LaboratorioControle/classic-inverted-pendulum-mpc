@@ -25,26 +25,32 @@ import serial.tools.list_ports
 
 class LogData:
     """Estrutura de dados recebida do ESP32"""
-    def __init__(self, t_ms=0, theta_deg=0.0, theta_dot=0.0, x_cm=0.0, x_dot_cm=0.0, u=0.0):
+    def __init__(self, t_ms=0, theta_deg=0.0, theta_dot=0.0, x_cm=0.0, x_dot_cm=0.0, u=0.0, yref=0.0, tempo_computacional=0.0, cod_erro=0.0):
         self.t_ms = t_ms
         self.theta_deg = theta_deg
         self.theta_dot = theta_dot
         self.x_cm = x_cm
         self.x_dot_cm = x_dot_cm
         self.u = u
+        self.yref = yref
+        self.tempo_computacional = tempo_computacional
+        self.cod_erro = cod_erro
     
     @staticmethod
     def from_bytes(data):
         """Converte bytes recebidos para LogData"""
-        # Formato: uint32_t (I) + 5x float (f)
-        unpacked = struct.unpack('<I5f', data)
+        # Formato: uint32_t (I) + 8x float (f)
+        unpacked = struct.unpack('<I8f', data)
         return LogData(
             t_ms=unpacked[0],
             theta_deg=unpacked[1],
             theta_dot=unpacked[2],
             x_cm=unpacked[3],
             x_dot_cm=unpacked[4],
-            u=unpacked[5]
+            u=unpacked[5],
+            yref=unpacked[6],
+            tempo_computacional=unpacked[7],
+            cod_erro=unpacked[8]
         )
     
     def to_dict(self):
@@ -55,7 +61,10 @@ class LogData:
             'theta_dot': self.theta_dot,
             'x_cm': self.x_cm,
             'x_dot_cm': self.x_dot_cm,
-            'u': self.u
+            'u': self.u,
+            'yref': self.yref,
+            'tempo_computacional': self.tempo_computacional,
+            'cod_erro': self.cod_erro
         }
 
 
@@ -79,7 +88,7 @@ class SerialReaderThread(QThread):
             
             buffer = bytearray()
             HEADER = bytes([0xAA, 0x55])
-            DATA_SIZE = 24  # 4 bytes (uint32_t) + 20 bytes (5x float)
+            DATA_SIZE = 36  # 4 bytes (uint32_t) + 32 bytes (8x float)
             
             while self.running:
                 if self.serial_conn.in_waiting > 0:
@@ -168,11 +177,17 @@ class MainWindow(QMainWindow):
         self.x_data = deque()
         self.x_dot_data = deque()
         self.u_data = deque()
+        self.yref_data = deque()
         
         # Tempo inicial (para plotagem relativa)
         self.time_offset = None
         
         self.init_ui()
+
+        # Timer para atualizar gráficos (20 FPS)
+        self.plot_timer = QTimer()
+        self.plot_timer.timeout.connect(self.update_plots)
+        self.plot_timer.start(50)
         
     def init_ui(self):
         """Inicializa a interface gráfica"""
@@ -400,7 +415,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(widget)
         
         # Configuração do pyqtgraph
-        pg.setConfigOptions(antialias=True)
+        pg.setConfigOptions(antialias=False)
         
         # Layout superior com 2 colunas
         top_layout = QHBoxLayout()
@@ -443,14 +458,25 @@ class MainWindow(QMainWindow):
         middle_layout.addWidget(self.plot_x_dot)
         
         layout.addLayout(middle_layout)
-        
-        # Layout inferior - Sinal de controle u (largura total)
+
+        bot_layout = QHBoxLayout()
+
         self.plot_u = pg.PlotWidget(title="Sinal de Controle u")
         self.plot_u.setLabel('left', 'u')
         self.plot_u.setLabel('bottom', 'Tempo', units='s')
         self.plot_u.showGrid(x=True, y=True)
         self.curve_u = self.plot_u.plot(pen='r', name='u')
-        layout.addWidget(self.plot_u)
+
+        self.plot_yref = pg.PlotWidget(title="Set Point yref")
+        self.plot_yref.setLabel('left', 'yref')
+        self.plot_yref.setLabel('bottom', 'Tempo', units='s')
+        self.plot_yref.showGrid(x=True, y=True)
+        self.curve_yref = self.plot_yref.plot(pen='b', name='yref')
+
+        bot_layout.addWidget(self.plot_u)
+        bot_layout.addWidget(self.plot_yref)
+
+        layout.addLayout(bot_layout)
         
         return widget
     
@@ -559,6 +585,7 @@ class MainWindow(QMainWindow):
         self.x_data.append(log_data.x_cm)
         self.x_dot_data.append(log_data.x_dot_cm)
         self.u_data.append(log_data.u)
+        self.yref_data.append(log_data.yref)
         
         # Remove dados mais antigos que a janela de tempo (mantém últimos 15s)
         if len(self.time_data) > 0:
@@ -572,15 +599,7 @@ class MainWindow(QMainWindow):
                 self.x_data.popleft()
                 self.x_dot_data.popleft()
                 self.u_data.popleft()
-        
-        # Atualiza gráficos APENAS se não estiver pausado
-        if self.plot_updating:
-            time_array = list(self.time_data)
-            self.curve_theta.setData(time_array, list(self.theta_data))
-            self.curve_theta_dot.setData(time_array, list(self.theta_dot_data))
-            self.curve_x.setData(time_array, list(self.x_data))
-            self.curve_x_dot.setData(time_array, list(self.x_dot_data))
-            self.curve_u.setData(time_array, list(self.u_data))
+                self.yref_data.popleft()
         
         # Grava dados se estiver gravando (independente dos gráficos)
         if self.recording:
@@ -673,7 +692,7 @@ class MainWindow(QMainWindow):
         if filename:
             try:
                 with open(filename, 'w', newline='') as csvfile:
-                    fieldnames = ['t_ms', 'theta_deg', 'theta_dot', 'x_cm', 'x_dot_cm', 'u']
+                    fieldnames = ['t_ms', 'theta_deg', 'theta_dot', 'x_cm', 'x_dot_cm', 'u', 'yref', 'tempo_computacional', 'cod_erro']
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                     
                     writer.writeheader()
@@ -709,6 +728,7 @@ class MainWindow(QMainWindow):
         self.x_data.clear()
         self.x_dot_data.clear()
         self.u_data.clear()
+        self.yref_data.clear()
         
         # Limpa as curvas nos gráficos
         self.curve_theta.setData([], [])
@@ -716,6 +736,7 @@ class MainWindow(QMainWindow):
         self.curve_x.setData([], [])
         self.curve_x_dot.setData([], [])
         self.curve_u.setData([], [])
+        self.curve_yref.setData([], [])
         
         # Reseta o offset de tempo
         self.time_offset = None
@@ -739,6 +760,7 @@ class MainWindow(QMainWindow):
                 self.curve_x.setData(time_array, list(self.x_data))
                 self.curve_x_dot.setData(time_array, list(self.x_dot_data))
                 self.curve_u.setData(time_array, list(self.u_data))
+                self.curve_yref.setData(time_array, list(self.yref_data))
             
             self.log_message("Gráficos retomados - atualizando em tempo real")
         else:
@@ -751,6 +773,23 @@ class MainWindow(QMainWindow):
         """Atualiza a janela de tempo da plotagem"""
         self.plot_time_window = float(value)
         self.log_message(f"Janela de tempo alterada para {value}s")
+
+    def update_plots(self):
+
+        if not self.plot_updating:
+            return
+
+        if len(self.time_data) == 0:
+            return
+
+        time_array = list(self.time_data)
+
+        self.curve_theta.setData(time_array, list(self.theta_data))
+        self.curve_theta_dot.setData(time_array, list(self.theta_dot_data))
+        self.curve_x.setData(time_array, list(self.x_data))
+        self.curve_x_dot.setData(time_array, list(self.x_dot_data))
+        self.curve_u.setData(time_array, list(self.u_data))
+        self.curve_yref.setData(time_array, list(self.yref_data))
     
     def log_message(self, message):
         """Adiciona mensagem ao console"""
@@ -767,7 +806,7 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())
 
 
