@@ -7,6 +7,11 @@
 
 
 %% Inicialização
+
+clear;
+close all;                       % Fecha todas as figuras abertas
+
+run init_project;
 close all;                       % Fecha todas as figuras abertas
 
 
@@ -20,14 +25,14 @@ plot_experimental = true;    % Dados experimentais
 %% SIMULAÇÃO DO MODELO - ENTRADA DEGRAU
 
 % Tempo total de simulação
-t_final = 45;                           % [s]
+t_final = 40;                           % [s]
 
 % Tempo de amostragem
 tau = dados.geral.Ts;                  % [s]
 
 % Parâmetros do degrau de entrada
-amplitude_degrau = -200*12/255;         % [V]
-duracao_degrau   = 500/1000;           % [s]
+amplitude = -200*12/255;         % [V]
+duracao   = 500/1000;           % [s]
 
 % Condições iniciais
 x0 = [0 0 0 0];                        % [posição, ângulo, velocidade, vel. angular]
@@ -40,7 +45,7 @@ t = (0:tau:t_final)';
 
 % Entrada de controle (degrau)
 u = zeros(size(t));
-u(t <= duracao_degrau) = amplitude_degrau;
+u(t <= duracao) = amplitude;
 
 % Inicialização do estado
 x = zeros(length(t), length(x0));
@@ -65,7 +70,7 @@ tspan = [0 t_final];
 
 % Simulação contínua
 [t2, x2] = ode45(@(t2,x2) ...
-    Modelo_Continuo_Script_Degrau(t2, x2, dados, duracao_degrau, amplitude_degrau), ...
+    Modelo_Continuo_Script_Degrau(t2, x2, dados, duracao, amplitude), ...
     tspan, x0);
 
 % Conversão de unidades
@@ -78,19 +83,21 @@ x2(:,4) = x2(:,4) * (180/pi);
 %% DADOS EXPERIMENTAIS
 
 % Importação dos dados experimentais
-importados = importdata('data\raw\dados_degrau_I200_D500_16022026.csv');
+importados = importdata('data\raw\dados_16032026_degrau_D500_I200_L.csv');
+importados = importados.data;
 
-off_set = 101;
+off_set = 95;
+end_set = 4090;
 
 t_import = importados(:,1) - importados(off_set,1);
 t_import = t_import/1000;
-t_import = t_import(off_set:end);
+t_import = t_import(off_set:end_set);
 
-angulo_import      = importados(off_set:end,2);
-vel_angular_import = importados(off_set:end,3);
-posicao_import     = importados(off_set:end,4);
-velocidade_import  = importados(off_set:end,5);
-u_import           = importados(off_set:end,6);
+angulo_import      = importados(off_set:end_set,2);
+vel_angular_import = importados(off_set:end_set,3);
+posicao_import     = importados(off_set:end_set,4);
+velocidade_import  = importados(off_set:end_set,5);
+u_import           = importados(off_set:end_set,6);
 
 %% PLOT DOS RESULTADOS (DINÂMICO)
 
@@ -98,76 +105,76 @@ figure;
 
 % ===================== POSIÇÃO DO CARRINHO =====================
 subplot(2,2,1); hold on; grid on;
-title('Posição do Carrinho');
+title('Posição do Carro');
 xlabel('Tempo (s)');
 ylabel('Posição (cm)');
 
 if plot_experimental
-    stairs(t_import, posicao_import, 'LineWidth', 1.2);
+    stairs(t_import, posicao_import, 'LineWidth', 1.1);
 end
 if plot_continuo
     plot(t2, x2(:,1), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,1), 'LineWidth', 1.2);
+    stairs(t, x(:,1), 'LineWidth', 1.1);
 end
 
 legend_entries = {};
 if plot_experimental, legend_entries{end+1} = 'Experimental'; end
 if plot_continuo,     legend_entries{end+1} = 'Contínuo';     end
-if plot_discreto,     legend_entries{end+1} = 'Discreto';     end
+if plot_discreto,     legend_entries{end+1} = 'Simulado';     end
 legend(legend_entries);
 
 % ===================== ÂNGULO DO PÊNDULO =====================
 subplot(2,2,2); hold on; grid on;
-title('Ângulo do Pêndulo');
+title('Ângulo');
 xlabel('Tempo (s)');
 ylabel('Ângulo (°)');
 
 if plot_experimental
-    stairs(t_import, angulo_import);
+    stairs(t_import, angulo_import, 'LineWidth', 1.1);
 end
 if plot_continuo
     plot(t2, x2(:,2), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,2));
+    stairs(t, x(:,2), 'LineWidth', 1.1);
 end
 
 legend(legend_entries);
 
 % ===================== VELOCIDADE DO CARRINHO =====================
 subplot(2,2,3); hold on; grid on;
-title('Velocidade do Carrinho');
+title('Velocidade do Carro');
 xlabel('Tempo (s)');
 ylabel('Velocidade (cm/s)');
 
 if plot_experimental
-    stairs(t_import, velocidade_import);
+    stairs(t_import, velocidade_import, 'LineWidth', 1.1);
 end
 if plot_continuo
     plot(t2, x2(:,3), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,3));
+    stairs(t, x(:,3), 'LineWidth', 1.1);
 end
 
 legend(legend_entries);
 
 % ===================== VELOCIDADE ANGULAR =====================
 subplot(2,2,4); hold on; grid on;
-title('Velocidade Angular do Pêndulo');
+title('Velocidade Angular');
 xlabel('Tempo (s)');
 ylabel('Velocidade Angular (°/s)');
 
 if plot_experimental
-    stairs(t_import, vel_angular_import);
+    stairs(t_import, vel_angular_import, 'LineWidth', 1.1);
 end
 if plot_continuo
     plot(t2, x2(:,4), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,4));
+    stairs(t, x(:,4), 'LineWidth', 1.1);
 end
 
 legend(legend_entries);
@@ -175,5 +182,5 @@ legend(legend_entries);
 
 %% LIMPEZA
 
-clear k tspan t_final tau amplitude_degrau duracao_degrau angulo_import importados legend_entries plot_continuo plot_discreto;
-clear plot_experimental posicao_import t t2 t_import u vel_angular_import velocidade_import x x0 x2 x_import;
+%clear k tspan t_final tau amplitude_degrau duracao_degrau angulo_import importados legend_entries plot_continuo plot_discreto;
+%clear plot_experimental posicao_import t t2 t_import u vel_angular_import velocidade_import x x0 x2 x_import;
