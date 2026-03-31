@@ -26,6 +26,7 @@ slprj/
 sccprj/
 codegen/
 resources/
+data/
 
 # Cache files
 *.slxc
