@@ -476,6 +476,7 @@ void MPC::build_constraints(float* err, float ulast){
 void MPC::solver_qp(){
 
     int nWSR_ = nWSR;
+    cpu_time[0] = 10;
 
     // Verifica se o solver entrou em estado de falha
     if (solver_result_code == 54) {
@@ -485,12 +486,12 @@ void MPC::solver_qp(){
     if (form_ == MPCForm::CLASSIC) {
 
         if(!qp_initialized){
-            qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR_);
+            qpOASES::returnValue ret = qp->init(H,F,Aineq,utildemin,utildemax,NULL,Bineq, nWSR_, cpu_time);
             qp_initialized = true;
 
             solver_result_code = (int) ret;
         } else{
-            qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR_);
+            qpOASES::returnValue ret = qp->hotstart(F,utildemin,utildemax,NULL,Bineq, nWSR_, cpu_time);
 
             solver_result_code = (int) ret;
         }
@@ -501,12 +502,12 @@ void MPC::solver_qp(){
         compute_Bineq_reduced(Pi_r);
 
         if(!qp_initialized){
-            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_, cpu_time);
             qp_initialized = true;
 
             solver_result_code = (int) ret;
         } else{
-            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_, cpu_time);
 
             solver_result_code = (int) ret;
         }
@@ -517,22 +518,15 @@ void MPC::solver_qp(){
         compute_Bineq_reduced(Pi_e);
 
         if(!qp_initialized){
-            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qpOASES::returnValue ret = qp->init(H_p,F_p,Aineq_p,NULL,NULL,NULL,Bineq_p, nWSR_, cpu_time);
             qp_initialized = true;
 
             solver_result_code = (int) ret;
 
         } else{
-            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_);
+            qpOASES::returnValue ret = qp->hotstart(F_p,NULL,NULL,NULL,Bineq_p, nWSR_, cpu_time);
 
             solver_result_code = (int) ret;
-
-            // if(ret != qpOASES::SUCCESSFUL_RETURN) {
-            //     Serial.print("QP Error Code: ");
-            //     Serial.print((int)ret);
-            //     Serial.print(" - ");
-            //     Serial.println(qpOASES::MessageHandling::getErrorCodeMessage(ret));
-            // }
         }
     }
 

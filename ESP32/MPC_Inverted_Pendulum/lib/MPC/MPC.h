@@ -33,8 +33,8 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
-// O adequado para o Linear é 5
-#define nre 5
+// O adequado para o Linear é 5 o Exponencial é 3
+#define nre 3
 
 /// Total number of decision variables in the parameterized system.
 #define np (nu*nre) 
@@ -205,6 +205,9 @@ public:
 
     /// Quantity of iterations of the optimizer
     int nWSR;
+
+    /// CPU time allowed for the optimization process
+    qpOASES::real_t cpu_time[1];
     
     /// Stores which was the chosen MPC option
     MPCForm form_;
