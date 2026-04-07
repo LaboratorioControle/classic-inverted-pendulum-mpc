@@ -413,6 +413,11 @@ class MainWindow(QMainWindow):
         """Cria painel de gráficos"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+
+        # Configuração global
+        pg.setConfigOptions(antialias=False)
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         
         # Configuração do pyqtgraph
         pg.setConfigOptions(antialias=False)
@@ -425,7 +430,7 @@ class MainWindow(QMainWindow):
         self.plot_theta.setLabel('left', 'θ', units='°')
         self.plot_theta.setLabel('bottom', 'Tempo', units='s')
         self.plot_theta.showGrid(x=True, y=True)
-        self.curve_theta = self.plot_theta.plot(pen='y', name='θ')
+        self.curve_theta = self.plot_theta.plot(pen=pg.mkPen('b', width=2))  # azul
         top_layout.addWidget(self.plot_theta)
         
         # Coluna 2: Posição x
@@ -433,7 +438,7 @@ class MainWindow(QMainWindow):
         self.plot_x.setLabel('left', 'x', units='cm')
         self.plot_x.setLabel('bottom', 'Tempo', units='s')
         self.plot_x.showGrid(x=True, y=True)
-        self.curve_x = self.plot_x.plot(pen='g', name='x')
+        self.curve_x         = self.plot_x.plot(pen=pg.mkPen('g', width=2))      # verde
         top_layout.addWidget(self.plot_x)
         
         layout.addLayout(top_layout)
@@ -446,7 +451,7 @@ class MainWindow(QMainWindow):
         self.plot_theta_dot.setLabel('left', 'θ̇', units='°/s')
         self.plot_theta_dot.setLabel('bottom', 'Tempo', units='s')
         self.plot_theta_dot.showGrid(x=True, y=True)
-        self.curve_theta_dot = self.plot_theta_dot.plot(pen='c', name='θ̇')
+        self.curve_theta_dot = self.plot_theta_dot.plot(pen=pg.mkPen('c', width=2))
         middle_layout.addWidget(self.plot_theta_dot)
         
         # Coluna 2: Velocidade linear ẋ
@@ -454,7 +459,7 @@ class MainWindow(QMainWindow):
         self.plot_x_dot.setLabel('left', 'ẋ', units='cm/s')
         self.plot_x_dot.setLabel('bottom', 'Tempo', units='s')
         self.plot_x_dot.showGrid(x=True, y=True)
-        self.curve_x_dot = self.plot_x_dot.plot(pen='m', name='ẋ')
+        self.curve_x_dot     = self.plot_x_dot.plot(pen=pg.mkPen('m', width=2))
         middle_layout.addWidget(self.plot_x_dot)
         
         layout.addLayout(middle_layout)
@@ -465,13 +470,13 @@ class MainWindow(QMainWindow):
         self.plot_u.setLabel('left', 'u')
         self.plot_u.setLabel('bottom', 'Tempo', units='s')
         self.plot_u.showGrid(x=True, y=True)
-        self.curve_u = self.plot_u.plot(pen='r', name='u')
+        self.curve_u         = self.plot_u.plot(pen=pg.mkPen('r', width=2))
 
         self.plot_yref = pg.PlotWidget(title="Set Point yref")
         self.plot_yref.setLabel('left', 'yref')
         self.plot_yref.setLabel('bottom', 'Tempo', units='s')
         self.plot_yref.showGrid(x=True, y=True)
-        self.curve_yref = self.plot_yref.plot(pen='b', name='yref')
+        self.curve_yref      = self.plot_yref.plot(pen=pg.mkPen('k', width=2))
 
         bot_layout.addWidget(self.plot_u)
         bot_layout.addWidget(self.plot_yref)
