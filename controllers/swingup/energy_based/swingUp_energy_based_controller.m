@@ -65,7 +65,7 @@ sign_arg = sign(arg);
 
 %% Aceleração linear desejada do carro
 
-x_ddot_des = ke * g * diffE * sign_arg;
+x_ddot_des = ke * g * diffE * sign_arg - 8 * x(1);
 
 %% Conversão da aceleração desejada em tensão de controle
 

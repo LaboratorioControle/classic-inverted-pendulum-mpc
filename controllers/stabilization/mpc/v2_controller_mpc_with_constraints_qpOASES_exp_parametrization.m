@@ -18,7 +18,7 @@ B   = dados.planta.B;
 tau = dados.geral.Ts;
 
 % Limites físicos (normalizados em SI)
-pos_limite     = 20/100;           % posição máxima do carrinho [m]
+pos_limite     = 18/100;           % posição máxima do carrinho [m]
 ang_limite     = 15*(pi/180);      % desvio máximo do ângulo [rad]
 vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
@@ -39,8 +39,7 @@ qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
-dados.controlador.energia.k = 2;   % ganho da lei de energia
-dados.controlador.energia.n = 1;    % parâmetro reservado
+dados.controlador.energia.k = 13;   % ganho da lei de energia
 
 %% 3. DEFINIÇÃO DO MPC COM RESTRIÇÕES
 
@@ -79,7 +78,7 @@ MPC.deltamax =  1e2;
 MPC = compute_MPC_Matrices(MPC);
 
 
-par.lambda = 0.5;
+par.lambda = 0.2;
 par.ne = 3; % Número de exponenciais para cada atuador (Matriz coluna)
 par.tau = tau;
 par.alpha = 0.5;
@@ -116,11 +115,14 @@ for i=1:nt
     
     t_aux = i*tau;
 
-    if t_aux >= 2.2
-        aux = -0.07;
+    if t_aux >= 1.1
+        aux = 0.05;
     end
-    if t_aux >= 15-2.8
-        aux = -0.15;
+    if t_aux >= 2.1
+        aux = 0.10;
+    end
+    if t_aux >= 3.1
+        aux = 0.15;
     end
     yref((i-1)*2 + 1) = aux;
 end
@@ -146,7 +148,8 @@ for i = 1 : nt - MPC.N
 
     % Distúrbio aplicado aos 15 s
     %if lest(i) == 15.0
-    %    lesx(i,4) = lesx(i,4) - 65*pi/180;
+    %    lesu(i,1) = lesu(i,1) + 9;
+    %    u = sat(u, comando_limite, -comando_limite);
     %end
 
     usar_MPC = (abs(lesx(i,2) - pi) < 15*pi/180) && ...
@@ -175,9 +178,16 @@ for i = 1 : nt - MPC.N
         end
 
         u=P_i(1, nu, MPC.N)*(Pi_e*p_opt);
-
+        
         if(exitflag ~= 0)
             u = 0;
+        end
+
+        % Distúrbio aplicado aos 15 s
+        if i >= 1510 && i < 1535
+            u = u - 9;
+            u = sat(u, comando_limite, -comando_limite);
+            disp("opa");
         end
 
         %tempos_mpc(i) = toc;
@@ -186,7 +196,7 @@ for i = 1 : nt - MPC.N
         u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(lesx(i,1)) >= 0.20
+        if abs(lesx(i,1)) >= 0.175
             u = -15 * lesx(i,1);
         end
 
@@ -200,7 +210,7 @@ for i = 1 : nt - MPC.N
     % Integração do modelo não linear
     xplus = RK4_discrete(lesx(i,:), u, tau, dados);
 
-    lesx(i,2) = wrapTo2Pi(lesx(i,2));
+    %lesx(i,2) = wrapTo2Pi(lesx(i,2));
 
     % Armazenamento
     lesu(i)      = u;
@@ -216,6 +226,8 @@ simulacao.mpc.exp.vel_angular = lesx(1:nt-MPC.N,4).*180/pi;
 simulacao.mpc.exp.tempo = lest(1:nt-MPC.N);
 simulacao.mpc.exp.comando = lesu(1:nt-MPC.N);
 
+%simulacao.mpc.exp.angulo = unwrap(deg2rad(simulacao.mpc.exp.angulo));
+%simulacao.mpc.exp.angulo = rad2deg(simulacao.mpc.exp.angulo);
 simulacao.mpc.exp.angulo = simulacao.mpc.exp.angulo/360;
 
 dados.controlador.MPC.ComRestricoes = MPC;
@@ -231,7 +243,7 @@ title('Posição do Carro (cm)');
 xlabel('Tempo (s)');
 
 % Experimental
-stairs(t, posicao, 'LineWidth', 1);
+stairs(t, posicao);
 
 % Simulação
 stairs(simulacao.mpc.exp.tempo, simulacao.mpc.exp.posicao, 'LineWidth', 1);
@@ -261,7 +273,7 @@ title('Ângulo (°) / 360°');
 xlabel('Tempo (s)');
 
 % Linhas de referência angular
-valores = [0.5 1.5 2.5 3.5 4.5 5.5];
+valores = [0.5 -0.5 -1.5];
 for v = valores
     yline(v, '--', 'Color', [0.7 0.7 0.7], 'LineWidth', 0.8);
 end
@@ -302,7 +314,7 @@ figure;
 set(gcf, 'Units', 'centimeters', 'Position', [5 5 20 8])
 hold on; grid on;
 
-stairs(t, u_exp);
+stairs(t, u_exp, 'LineWidth', 1);
 stairs(simulacao.mpc.exp.tempo, simulacao.mpc.exp.comando, 'LineWidth', 1);
 
 

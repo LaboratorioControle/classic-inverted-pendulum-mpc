@@ -13,13 +13,15 @@ B = dados.planta.B;   % Matriz de entrada
 
 %% Estrutura de saída do MPC
 % Considera todos os estados como saídas rastreadas
+%MPC.Cr = [1 0 0 0; 0 1 0 0];
 MPC.Cr = eye(4);
-
 %% Matrizes de ponderação do MPC
 % Utiliza as mesmas matrizes Q e R do LQR para garantir
 % uma comparação justa entre os controladores
 MPC.Qy = dados.controlador.lqr.Q;   % Penalização dos estados rastreados
 MPC.Qu = dados.controlador.lqr.R;   % Penalização do esforço de controle
+
+%MPC.Qy = [500 0; 100 0];
 
 %% Dimensões do sistema
 [n, nu] = size(B);
@@ -29,7 +31,7 @@ MPC.A = A;
 MPC.B = B;
 
 %% Cálculo dos ganhos do MPC para diferentes horizontes
-Nmax = 200;               % Horizonte máximo analisado
+Nmax = 100;               % Horizonte máximo analisado
 K = zeros(Nmax, n);       % Vetor para armazenamento dos ganhos
 lesN = (1:1:Nmax)';       % Vetor de horizontes de predição
 
@@ -47,45 +49,56 @@ end
 %% Ganho do controlador LQR
 one = ones(size(lesN));               % Vetor unitário para replicação
 K_LQR = dados.controlador.lqr.K;       % Ganho do LQR
-
+%K_LQR = [-15, 140, -80, 20];
 %% Plot dos resultados
 % Comparação dos ganhos do MPC (em função de N)
 % com os ganhos constantes do LQR
 
+
+
+tol = 0.7;
+
+id_conv = zeros(1,4);
+
+for j = 1:4
+    diff = abs(K(:,1) - K_LQR(1));
+    idx = find(diff < tol, 1, 'first');
+
+    if ~isempty(idx)
+        id_conv(j) = idx;
+    else
+        id_conv(j) = NaN;
+    end
+end
+
+
 figure;
-sgtitle('Comparação LQR x MPC sem restrições');
+set(gcf, 'Units', 'centimeters', 'Position', [5 5 20 15])
 
-% Ganho associado à posição do carrinho (x)
-subplot(2,2,1);
-plot(lesN, K(:,1), lesN, one*K_LQR(1), 'k-.');
-legend('Ganho K_n - Controlador MPC', 'Ganho K_{lqr} - Controlador LQR');
-title('Ganhos da posição x');
-xlabel('Horizonte de predição N');
-ylabel('Ganho');
-
-% Ganho associado ao ângulo do pêndulo (\theta)
-subplot(2,2,2);
-plot(lesN, K(:,2), lesN, one*K_LQR(2), 'k-.');
-legend('Ganho K_n - Controlador MPC', 'Ganho K_{lqr} - Controlador LQR');
-title('Ganhos da posição \theta');
-xlabel('Horizonte de predição N');
-ylabel('Ganho');
-
-% Ganho associado à velocidade do carrinho (ẋ)
-subplot(2,2,3);
-plot(lesN, K(:,3), lesN, one*K_LQR(3), 'k-.');
-legend('Ganho K_n - Controlador MPC', 'Ganho K_{lqr} - Controlador LQR');
-title('Ganhos da velocidade x_{dot}');
-xlabel('Horizonte de predição N');
-ylabel('Ganho');
-
-% Ganho associado à velocidade angular do pêndulo (\dot{\theta})
-subplot(2,2,4);
-plot(lesN, K(:,4), lesN, one*K_LQR(4), 'k-.');
-legend('Ganho K_n - Controlador MPC', 'Ganho K_{lqr} - Controlador LQR');
-title('Ganhos da velocidade \theta_{dot}');
-xlabel('Horizonte de predição N');
-ylabel('Ganho');
-
-clear ang_limite angulo A B comando comando_limite F1 F2 F3 H i K K_LQR lesN;
-clear MPC n nu Nmax one pos_limite pos_spt posicao tempo velocidade vel_limite vel_angular;
+for i = 1:4
+    subplot(2,2,i);
+    hold on;
+    
+    plot(lesN, K(:,i), 'LineWidth', 1.5);
+    plot(lesN, K_LQR(i)*ones(size(lesN)), 'k--', 'LineWidth', 1.5);
+    
+    % Ponto de convergência
+    if ~isnan(id_conv(i))
+        plot(lesN(id_conv(i)), K(id_conv(i),i), 'o', 'MarkerSize', 6, 'LineWidth', 1.5);
+        
+        txt = sprintf('N = %d', id_conv(i));
+    else
+        txt = 'N não converge';
+    end
+    
+    grid on;
+    
+    title(labels{i});
+    xlabel('Horizonte N');
+    ylabel('Ganho');
+    
+    if i == 1
+        legend({'$K_{MPC}$', '$K_{LQR}$', txt}, ...
+            'Interpreter', 'latex', 'Location', 'best');
+    end
+end

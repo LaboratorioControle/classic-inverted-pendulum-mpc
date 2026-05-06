@@ -33,6 +33,7 @@
 
 
 #include <math.h>
+#include <Arduino.h>
 
 #if defined(__WIN32__) || defined(WIN32)
   #include <windows.h>
@@ -580,20 +581,22 @@ returnValue writeIntoMatFile(	FILE* const matFile,
  */
 real_t getCPUtime( )
 {
-	real_t current_time = -1.0;
+	//real_t current_time = -1.0;
 
-	#if defined(__WIN32__) || defined(WIN32)
-	LARGE_INTEGER counter, frequency;
-	QueryPerformanceFrequency(&frequency);
-	QueryPerformanceCounter(&counter);
-	current_time = ((real_t) counter.QuadPart) / ((real_t) frequency.QuadPart);
-	#elif defined(LINUX) || defined(__LINUX__)
-	struct timeval theclock;
-	gettimeofday( &theclock,0 );
-	current_time =  1.0*(real_t) theclock.tv_sec + 1.0e-6* (real_t) theclock.tv_usec;
-	#endif
+	return (real_t)micros() * 1e-3;
 
-	return current_time;
+	// #if defined(__WIN32__) || defined(WIN32)
+	// LARGE_INTEGER counter, frequency;
+	// QueryPerformanceFrequency(&frequency);
+	// QueryPerformanceCounter(&counter);
+	// current_time = ((real_t) counter.QuadPart) / ((real_t) frequency.QuadPart);
+	// #elif defined(LINUX) || defined(__LINUX__)
+	// struct timeval theclock;
+	// gettimeofday( &theclock,0 );
+	// current_time =  1.0*(real_t) theclock.tv_sec + 1.0e-6* (real_t) theclock.tv_usec;
+	// #endif
+
+	//return current_time;
 }
 
 

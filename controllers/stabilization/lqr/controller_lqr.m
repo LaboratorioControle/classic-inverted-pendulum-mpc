@@ -10,8 +10,8 @@ clc;
 % Q: penalização dos estados
 % R: penalização do esforço de controle
 
-dados.controlador.lqr.Q = diag([10 5 1 1]);
-dados.controlador.lqr.R = 0.01;
+dados.controlador.lqr.Q = diag([500 100 1 1]);
+dados.controlador.lqr.R = 0.001;
 
 % Cálculo do ganho de realimentação de estados
 dados.controlador.lqr.K = dlqr( ...

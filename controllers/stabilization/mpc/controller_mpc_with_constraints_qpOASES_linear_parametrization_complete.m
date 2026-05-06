@@ -18,14 +18,22 @@ tau = dados.geral.Ts;
 
 % Limites físicos (normalizados em SI)
 pos_limite     = 20/100;           % posição máxima do carrinho [m]
+ang_limite     = 10*(pi/180);      % desvio máximo do ângulo [rad]
+vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
 
 % Condições iniciais
 pos_inicial = 0;
 ang_inicial = 180*(pi/180);
 
+% Setpoint
+pos_spt = 0/100;
+
 % Tempo total de simulação
 tsim = 35;
+
+% Contador de falhas do QP
+qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
@@ -44,16 +52,18 @@ MPC.Cr = [1 0 0 0;
           0 1 0 0];
 
 % Pesos do custo
-MPC.Qy = diag([450 100]);   % penalização dos estados rastreados
+MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
 MPC.Qu = 0.001;            % penalização do esforço de controle
-MPC.N  = 33;                % horizonte de predição
+MPC.N  = 35;                % horizonte de predição
 
 % Estados restringidos: posição, ângulo e velocidade
 MPC.Cc = [1 0 0 0];
+%          0 1 0 0;
+%          0 0 1 0];
 
 % Limites das restrições
-MPC.ycmin = -pos_limite; 
-MPC.ycmax =  pos_limite;
+MPC.ycmin = [-pos_limite]; %-ang_limite; -vel_limite];
+MPC.ycmax = [ pos_limite];%  ang_limite;  vel_limite];
 
 MPC.umin = -comando_limite;
 MPC.umax =  comando_limite;
@@ -86,25 +96,27 @@ lesu = zeros(nt, nu);
 
 tempos_mpc = zeros(nt,1);
 
+% Referência empilhada
+yref = zeros(nt * num_var_reguladas, 1);
+
+for i=1:nt
+    yref((i-1)*2 + 1) = 0.15*sin(2*pi*0.2*i*tau);
+end
+
+
 lesx(1,:) = x0';
 lesy(1,:) = MPC.Cr * x0;
 
 x_des = [0 180*pi/180 0 0];
 
-%% Geração de Trajetória
-yref = zeros(nt * num_var_reguladas, 1);
-
-for i=1:nt
-    yref((i-1)*2 + 1) = 0.15*sin(2*pi*0.1*i*tau);
-end
-
-
-
 %% 5. CONFIGURAÇÃO DO SOLVER QP (qpOASES)
 
 options = qpOASES_options('default');
-options.maxIter                = 4;
+%options.enableFarBounds        = 0;
+options.maxIter                = 8;
 options.terminationTolerance   = 1e-4;
+%options.boundTolerance         = 1e-6;
+%options.enableRegularisation   = 1;
 
 QP = [];
 
@@ -114,21 +126,24 @@ for i = 1 : nt - MPC.N
 
     % Distúrbio aplicado aos 15 s
     %if lest(i) == 15.0
-    %    lesx(i,4) = lesx(i,4) + 15*pi/180;
+        %lesx(i,4) = lesx(i,4) + 15*pi/180;
     %end
 
-    % if i == 1
-    %     lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
-    % end
+    if i == 1
+        lesx(i,:) = RK4_discrete(lesx(i,:), 200*12/255, tau, dados);
+    end
         
+
     usar_MPC = (abs(lesx(i,2) - pi) < 15*pi/180) && ...
                 (abs(lesx(i,4))      < 100*pi/180);
 
     if usar_MPC
 
         tic  
-        
-        yref_pred = yref(i*num_var_reguladas+1:(i+MPC.N)*num_var_reguladas);
+
+        % ---------- MPC ----------
+        yref_pred = yref(i*num_var_reguladas + 1 : ...
+                          (i+MPC.N)*num_var_reguladas);
 
         err = lesx(i,:) - x_des;
 
@@ -137,18 +152,31 @@ for i = 1 : nt - MPC.N
 
         MPCr=compute_reduced_matrices(MPC,Pi_r);
 
+        try
+            if i == 1 || isempty(QP)
+                [QP, p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('i', MPCr.H, MPCr.F, MPCr.Aineq, ...
+                                     [], [], ...
+                                     [], MPCr.Bineq, options);
+            else
+                [p_opt, ~, exitflag] = ...
+                    qpOASES_sequence('h', QP, MPCr.F, ...
+                                     [], [], ...
+                                     [], MPCr.Bineq, options);
+            end
 
-        if i == 1 
-            [QP, p_opt, ~, exitflag] = ...
-                qpOASES_sequence('i', MPCr.H, MPCr.F, MPCr.Aineq, [], [], [], MPCr.Bineq, options);
-        else
-            [p_opt, ~, exitflag] = ...
-                qpOASES_sequence('h', QP, MPCr.F, [], [], [], MPCr.Bineq, options);
+            u=P_i(1, nu, MPC.N)*(Pi_r*p_opt);
+
+            if exitflag ~= 0 || any(~isfinite(p_opt))
+                qp_error_count = qp_error_count + 1;
+            else
+                qp_error_count = 0;
+            end
+        catch 
+            qp_error_count = qp_error_count + 1;
         end
 
-        u=P_i(1, nu, MPC.N)*(Pi_r*p_opt);
-
-        if(exitflag ~= 0)
+        if(qp_error_count > 0)
             u = 0;
         end
         
@@ -193,25 +221,26 @@ figure
 subplot(2,2,1)
 plot(tempo, posicao, 'LineWidth', 1.5)
 hold on
-plot(tempo, yref(1:2:(nt-MPC.N)*2)*100, '--', 'LineWidth', 1.1)
-yline(pos_limite*100, '--')
-yline(-pos_limite*100, '--')
+yline(pos_limite*100, '--r')
+yline(-pos_limite*100, '--r')
+plot(tempo, yref(1:2:(nt-MPC.N)*2)*100)
 grid on
-title('Posição (cm)')
-legend('Posição','Referência');
+ylabel('Posição [cm]')
+title('Posição')
 
-ylim([-22, 22])
-xlim([0,30]);
+ylim_auto = ylim;
+ylim([min(ylim_auto(1), -pos_limite*100*1.1), ...
+      max(ylim_auto(2),  pos_limite*100*1.1)])
 
 % -------- VELOCIDADE --------
 subplot(2,2,3)
 plot(tempo, velocidade, 'LineWidth', 1.5)
 grid on
-ylabel('Velocidade [cm/s]')
+ylabel('Vel. [cm/s]')
 title('Velocidade')
 
+ylim_auto = ylim;
 ylim([-50, 50])
-xlim([0,30]);
 
 % -------- ÂNGULO --------
 subplot(2,2,2)
@@ -225,17 +254,14 @@ title('Ângulo')
 
 %ylim_auto = ylim;
 ylim([160, 200])
-xlim([0,30]);
 
 % -------- VELOCIDADE ANGULAR --------
 subplot(2,2,4)
 plot(tempo, vel_angular, 'LineWidth', 1.5)
 grid on
-ylabel('Velocidade Angular [°/s]')
+ylabel('Vel. Ang. [°/s]')
 xlabel('Tempo [s]')
 title('Velocidade Angular')
-
-ylim([-200, 200])
 
 %% ================= CONTROLE + TEMPO =================
 figure('Name','Controle e Tempo de Execução','Color','w')
@@ -244,23 +270,23 @@ figure('Name','Controle e Tempo de Execução','Color','w')
 subplot(2,1,1)
 plot(tempo, comando, 'LineWidth', 1.5)
 hold on
-yline(comando_limite, '--')
-yline(-comando_limite, '--')
+yline(comando_limite, '--r')
+yline(-comando_limite, '--r')
 grid on
 ylabel('Tensão [V]')
 title('Sinal de Controle')
 
-ylim([-15, 15])
-xlim([0,30]);
+ylim_auto = ylim;
+ylim([min(ylim_auto(1), -comando_limite*1.1), ...
+      max(ylim_auto(2),  comando_limite*1.1)])
 
 % -------- TEMPO POR ITERAÇÃO --------
 subplot(2,1,2)
 plot(tempo, tempos_mpc(1:nt-MPC.N)*1000, 'LineWidth', 1.5) % em ms
 grid on
 xlabel('Tempo [s]')
-ylabel('Tempo de Execução [ms]')
+ylabel('Tempo [ms]')
 title('Tempo de Execução por Iteração')
-xlim([0,30]);
 
 % (opcional) linha do tempo de amostragem
 hold on

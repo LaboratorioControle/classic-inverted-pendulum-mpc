@@ -49,6 +49,7 @@ volatile int lastEncodedMot = 0;
 
 const float FATOR_CONV_DIST = 145.366; //Pulsos pos cm
 
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // ==============================
 // VARIÁVEIS DOS SINAIS DE ENSAIO
@@ -60,6 +61,12 @@ unsigned long tempoDegrauInicio = 0;
 unsigned long duracaoDegrau = 100;    // ms
 uint8_t intensidadeDegrau = 0;
 char sentidoDegrau = 'R';
+
+// Variáveis do distúrbio
+volatile bool disturbioAtivo = false;
+unsigned long tempoInicioDisturbio = 0;
+unsigned long duracaoDisturbio = 250; // Duração do pulso em milissegundos
+float amplitudeDisturbio = -9.0;       // Amplitude do pulso em Volts (ex: 5.0V)
 
 // Variáveis do seno
 volatile bool senoideAtiva = false;
@@ -80,15 +87,17 @@ volatile uint8_t pwmManual = 180;
 // Variáveis do controlador LQR
 volatile bool controleLQRAtivo = false;
 float K[4] = {-15, 140, -80, 20};
-float K_swing = 30;
+float K_swing = 20;
+float K_swing_pos = 8;
 
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  25.0/100.0; 
+const float FIM_CURSO_VIRTUAL =  16.5/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
+
 
 // Comando via botões físicos
 bool ajustandoPosicao = false; 
@@ -102,12 +111,21 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::LINEAR, 30);
-float pos_limite = 20.0/100.0;
-float ang_limite = 12.0 * (PI/180.0);
+MPC mpc = MPC(MPCForm::CLASSIC, 15); //LINEAR = 4, EXPONENCIAL = 8, CLASSIC = 15
+float pos_limite = 18.0/100.0;
+float ang_limite = 15.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
 float ulast = 0;
+
+int idx_traj = 0;
+float yref_global[3500 * 2]; // ny = 2 (posição, ângulo)
+int nt = 0;                    // tamanho da trajetória
+
+// Tempo para cálculo do sinal de controle do MPC
+float tempo_computacional = 0.0;
+float cod_resultado_mpc = 0.0;
+
 
 // ==============================
 // DADOS DA PLANTA
@@ -136,7 +154,6 @@ float x_dot = 0.0;      // Velocidade do carro (m/s)
 float theta = 0.0;      // Ângulo (rad)
 float theta_dot = 0.0;  // Velocidade angular (rad/s)
 
-
 // ==============================
 // ENVIO DE DADOS PARA O MATLAB
 // ==============================
@@ -146,6 +163,10 @@ typedef struct {
   float theta_dot;
   float x_cm;
   float x_dot_cm;
+  float u;
+  float yref;
+  float tempo_computa;
+  float cod_result;
 } LogData;
 
 QueueHandle_t filaLog;
@@ -281,7 +302,7 @@ float swingUpController() {
 
     float k_energy = K_swing * g;
 
-    float x_2dot_desejado = k_energy * (E - E_des) * sign(arg) - 8*x;
+    float x_2dot_desejado = k_energy * (E - E_des) * sign(arg) - K_swing_pos * x;
     
     float theta_2dot = (-b * theta_dot
                         - m * l * cos(theta) * x_2dot_desejado
@@ -299,11 +320,68 @@ float swingUpController() {
 
 
 // ==============================
+// GERAÇÃO DE TRAJETÓRIA DE REFERÊNCIA
+// ==============================
+void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
+
+    nt = (int)(duracao_trajetoria / Ts);
+
+    float ref_offset = 0.0f; // posição central
+    float ref_amp = 0.15f; // amplitude de 15 cm
+    float ref_freq = 0.2f; // frequência de 0.1 Hz
+
+    for (int i = 0; i < nt; i++) {
+
+        float t = i * Ts;
+
+       float ref_x = 0;
+
+        // Degrau
+        // if (t >= 5) {
+        //     ref_x = -0.07;
+        // }
+
+        // if (t >= 15) {
+        //     ref_x = -0.15;
+        // }
+
+        // Disturbio
+        if (t >= 1) {
+            ref_x = 0.05;
+        }
+
+        if (t >= 2) {
+            ref_x = 0.1;
+        }
+
+        if (t >= 3) {
+            ref_x = 0.15;
+        }
+
+        //float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+
+        yref_global[i * 2 + 0] = ref_x; // posição
+        yref_global[i * 2 + 1] = 0.0f;  // ângulo
+
+    }
+}
+
+float ruidoGaussiano(float media, float desvio) {
+  float u1 = ((float)esp_random() / UINT32_MAX);
+  float u2 = ((float)esp_random() / UINT32_MAX);
+
+  float z0 = sqrt(-2.0f * log(u1)) * cos(2.0f * PI * u2);
+  return z0 * desvio + media;
+}
+
+
+// ==============================
 // FUNÇÃO PARA CONTROLE LQR
 // ==============================
 void controleEstadoLQR() {
 
   float erroX = x - (set_point_x / 100.0f);  // converte cm → metros, se sua pos está em m
+  //float erroX = x - (yref_global[(idx_traj+1)*2]);  // converte cm → metros, se sua pos está em m
   float erroTheta = theta - PI; 
 
   float u = 0;
@@ -311,15 +389,44 @@ void controleEstadoLQR() {
   bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoLQR = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
-  if (emZonaPerigo){
-    u = - K[3] * erroX;
-  }else if(emRegiaoLQR){
+  if(emRegiaoLQR){
     u = -(K[0]*erroX + K[1]*erroTheta + K[2]*x_dot + K[3]*theta_dot);
+
+
+    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
+    //     disturbioAtivo = true;
+    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+    // }
+
+    // if (disturbioAtivo) { 
+    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
+    //         u = constrain(u, -12.0, 12.0);
+    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
+    //     } else {
+    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
+    //     }
+    // }
+
+    if (emZonaPerigo){
+      u = 0;
+    }
+
   }else{
     u = swingUpController();
+
+    if (emZonaPerigo){
+      u = - K[3] * x;
+    }
   }
 
+  // idx_traj++;
+  //   if (idx_traj >= nt)
+  //       idx_traj = nt - 1;
+
   u = constrain(u, -12.0, 12.0);
+  ulast = u;
   float u_pwm = (u / 12.0) * 255.0;
   
   if (u_pwm >= 0) {
@@ -339,8 +446,9 @@ void desativaControladorLQR(){
 
 void ativaControladorLQR(){
   controleLQRAtivo = true;
-  degrauAtivo = false;
-  senoideAtiva = false;
+
+  idx_traj = 0;
+  gerarTrajetoriaSeno(35.0f, PERIODO / 1000.0f);
 
   if (theta <= 1e-2) {
     ledcWrite(1, 200);
@@ -358,16 +466,16 @@ void setupMPC(){
   // MATRIZES DO MODELO
   // =========================
   mpc.A = Matrix(4,4);
-  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0000; mpc.A(0,2)=0.0091;  mpc.A(0,3)=0.0000;
-  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0022; mpc.A(1,2)=-0.0039; mpc.A(1,3)=0.0100;
-  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0044; mpc.A(2,2)=0.8224;  mpc.A(2,3)=0.0000;
-  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.4346; mpc.A(3,2)=-0.7526; mpc.A(3,3)=1.0021;
+  mpc.A(0,0)=1.0000; mpc.A(0,1)=0.0001; mpc.A(0,2)=0.0081;  mpc.A(0,3)=0.0000;
+  mpc.A(1,0)=0.0000; mpc.A(1,1)=1.0020; mpc.A(1,2)=-0.0070; mpc.A(1,3)=0.0100;
+  mpc.A(2,0)=0.0000; mpc.A(2,1)=0.0104; mpc.A(2,2)=0.6493;  mpc.A(2,3)=0.0001;
+  mpc.A(3,0)=0.0000; mpc.A(3,1)=0.4062; mpc.A(3,2)=-1.3132; mpc.A(3,3)=1.0020;
 
   mpc.B = Matrix(4,1);
-  mpc.B(0,0)=0.0000;
-  mpc.B(1,0)=0.0001;
-  mpc.B(2,0)=0.0068;
-  mpc.B(3,0)=0.0288;
+  mpc.B(0,0)=0.0001;
+  mpc.B(1,0)=0.0003;
+  mpc.B(2,0)=0.0130;
+  mpc.B(3,0)=0.0486;
 
   // =========================
   // MATRIZ DE SAÍDA
@@ -376,17 +484,17 @@ void setupMPC(){
   mpc.Cr(0,0)=1; mpc.Cr(0,1)=0; mpc.Cr(0,2)=0; mpc.Cr(0,3)=0;
   mpc.Cr(1,0)=0; mpc.Cr(1,1)=1; mpc.Cr(1,2)=0; mpc.Cr(1,3)=0;
 
-  mpc.Cc = Matrix(3,4);
+  mpc.Cc = Matrix(1,4);
   mpc.Cc(0,0)=1; mpc.Cc(0,1)=0; mpc.Cc(0,2)=0; mpc.Cc(0,3)=0;
-  mpc.Cc(1,0)=0; mpc.Cc(1,1)=1; mpc.Cc(1,2)=0; mpc.Cc(1,3)=0;
-  mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
+  //mpc.Cc(1,0)=0; mpc.Cc(1,1)=0; mpc.Cc(1,2)=1; mpc.Cc(1,3)=0;
+  //mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
 
   // =========================
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=320; mpc.Qy(0,1)=0;
-  mpc.Qy(1,0)=0; mpc.Qy(1,1)=120;
+  mpc.Qy(0,0)=500; mpc.Qy(0,1)=0; //LINEAR = 500, EXPONENCIAL = 450, CLASSICO = 500
+  mpc.Qy(1,0)=0; mpc.Qy(1,1)=100;
 
   mpc.Qu = Matrix(1,1);
   mpc.Qu(0,0) = 0.001;
@@ -394,15 +502,15 @@ void setupMPC(){
   // =========================
   // LIMITES
   // =========================
-  mpc.ycmax = Matrix(3,1);
+  mpc.ycmax = Matrix(1,1);
   mpc.ycmax(0,0)= pos_limite;
-  mpc.ycmax(1,0)= ang_limite;
-  mpc.ycmax(2,0)= vel_limite;
+  //mpc.ycmax(1,0)= ang_limite;
+  //mpc.ycmax(2,0)= vel_limite;
 
-  mpc.ycmin = Matrix(3,1);
+  mpc.ycmin = Matrix(1,1);
   mpc.ycmin(0,0)= -pos_limite;
-  mpc.ycmin(1,0)= -ang_limite;
-  mpc.ycmin(2,0)= -vel_limite;
+  //mpc.ycmin(1,0)= -ang_limite;
+  //mpc.ycmin(2,0)= -vel_limite;
 
   mpc.umax = Matrix(1,1); 
   mpc.umax(0,0) = comando_limite;
@@ -419,8 +527,14 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  float pontos[7] = {1, 5, 10, 15, 20, 25, 30};
-  mpc.compute_MPC_Matrices(pontos);
+  //  float pontos[5] = {1, 7, 14, 21, 28};
+  //  mpc.compute_MPC_Matrices(pontos);
+  mpc.compute_MPC_Matrices();
+
+  // float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
+  // float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
+  // float tau = PERIODO/1000;
+  // mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
@@ -433,18 +547,61 @@ void controleEstadoMPC() {
   bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoMPC = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
-  if (emZonaPerigo){
-    u = - (K[1] * erroX + K[3] * x_dot);
-  }else if(emRegiaoMPC){
+  if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
+    float spt[2] = {set_point_x / 100.0f, 0.0f};
 
-    float spt[2] = {0.0f, 0.0f};
-    u = mpc.compute_MPC_Command(ulast, spt, estados)[0];
+    unsigned long tempo_inicio = micros();
+    //mpc.generate_yref(spt, NULL, 0, false);
+    mpc.generate_yref(NULL, yref_global, idx_traj, true);
+    u = mpc.compute_MPC_Command(ulast, estados)[0];
+
+    unsigned long tempo_fim = micros();
+
+    tempo_computacional = tempo_fim - tempo_inicio;
+    cod_resultado_mpc = mpc.get_solver_result_code();
+
+    if (mpc.get_solver_result_code() != 0){
+        u = 0;
+    }
+
+
+    // //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
+    //     disturbioAtivo = true;
+    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+    // }
+
+    // if (disturbioAtivo) { 
+    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
+    //         u = constrain(u, -12.0, 12.0);
+    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
+    //     } else {
+    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
+    //     }
+    // }
+
+
+
+
   }else{
     u = swingUpController();
+
+    tempo_computacional = -1.0; // Indica que o MPC não foi executado
+    cod_resultado_mpc = -1.0;   // Indica que o MPC não foi executado
+
+    if(emZonaPerigo){
+      u = - K[1] * erroX;
+    }
+
+    u = constrain(u, -12.0, 12.0);
   }
 
-  u = constrain(u, -12.0, 12.0);
+  idx_traj++;
+    if (idx_traj >= nt)
+        idx_traj = nt - 1;
+
   ulast = u;
   float u_pwm = (u / 12.0) * 255.0;
   
@@ -465,6 +622,9 @@ void desativaControladorMPC(){
 
 void ativaControladorMPC(){
   controleMPCAtivo = true;
+
+  idx_traj = 0;
+  gerarTrajetoriaSeno(35.0f, PERIODO / 1000.0f);
 
   if (theta <= 1e-2) {
     ledcWrite(1, 100);
@@ -560,14 +720,14 @@ void gerenciaBotoes() {
     // ESTADO NORMAL
     // ===============================
     if (liga && !desliga) {
-        //K[0] = -15; K[1] = 140; K[2] = -80; K[3] = 20; K_swing = 25;
-        //ativaControladorLQR();
-        ativaControladorMPC();
+        K[0] = -112; K[1] = 215; K[2] = -106; K[3] = 34;
+        ativaControladorLQR();
+        //ativaControladorMPC();
     }
 
     if (desliga && !liga) {
-        //desativaControladorLQR();
-        desativaControladorMPC();
+        desativaControladorLQR();
+        //desativaControladorMPC();
         degrauAtivo = false;
         senoideAtiva = false;
     }
@@ -669,6 +829,12 @@ void taskLeitura(void *parameter) {
   float x_ant  = 0.0;
   float tempo_s = 0.0;
 
+  float theta_dot_filtrado = 0.0f;
+  float x_dot_filtrado     = 0.0f;
+
+  float Ts = PERIODO / 1000.0f;
+  float alpha = 0.5f;
+
   while (true) {
     vTaskDelayUntil(&xLastWakeTime, periodo);
 
@@ -691,12 +857,18 @@ void taskLeitura(void *parameter) {
     tempo_s = millis() / 1000.0;
 
     // Cópias locais (evita conflito com interrupções)
+    portENTER_CRITICAL(&mux);
     long countMot = encoderMotCount;
     long countPend = encoderPendCount;
+    portEXIT_CRITICAL(&mux);
 
     // Cálculo da posição em metros e da velocidade em m/s
     x = (float) countMot / (FATOR_CONV_DIST * 100.0f);
-    x_dot = (x - x_ant) / (PERIODO / 1000.0);
+
+    float x_dot_raw = (x - x_ant) / Ts;
+    x_dot_filtrado = alpha * x_dot_filtrado + (1 - alpha) * x_dot_raw;
+    x_dot = x_dot_filtrado;
+
     x_ant = x;
 
     // Cálculo do ângulo entre 0 e 2π
@@ -711,21 +883,54 @@ void taskLeitura(void *parameter) {
     if (delta_theta > PI)       delta_theta -= 2*PI;
     else if (delta_theta < -PI) delta_theta += 2*PI;
 
-    theta_dot = delta_theta / (PERIODO / 1000.0) ;
+    float theta_dot_raw = delta_theta / Ts;
+    theta_dot_filtrado = alpha * theta_dot_filtrado + (1 - alpha) * theta_dot_raw;
+    theta_dot = theta_dot_filtrado;
+
     theta_ant = theta;
+
+
+    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+  //   if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1600)) {
+  //       disturbioAtivo = true;
+  //       tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+  //   }
+
+  //   if (disturbioAtivo) { 
+  //   if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+
+  //       float ruido_x       = ruidoGaussiano(0.0f, 0.02f);   // metros (~ 1cm)
+  //       float ruido_x_dot   = ruidoGaussiano(0.0f, 0.01f);    // m/s
+  //       float ruido_theta   = ruidoGaussiano(0.0f, 0.09f);   // rad (~5°)
+  //       float ruido_theta_d = ruidoGaussiano(0.0f, 0.09f);    // (15 rad/s)
+
+  //       //x         += ruido_x;
+  //       //x_dot     += ruido_x_dot;
+  //       theta     += ruido_theta;
+  //       theta_dot += ruido_theta_d;
+
+  //   } else {
+  //       disturbioAtivo = false;
+  //   }
+  // }
 
     // Leitura do potênciometro para definição do set point da posição
     int leituraPot = analogRead(POTENCIOMETRO);
-    set_point_x = ((float)leituraPot / 4095.0f) * guia - guia/2.0;
+    set_point_x = -1 *(((float)leituraPot / 4095.0f) * guia - guia/2.0);
 
     // Envio de dados para o MatLab para plot online
     LogData log;
 
     log.t_ms       = millis();
     log.theta_deg  = theta * 180.0f / PI;
-    log.theta_dot  = theta_dot;
+    log.theta_dot  = theta_dot * 180.0f / PI;
     log.x_cm       = x * 100.0f;
     log.x_dot_cm   = x_dot * 100.0f;
+    log.u = ulast;
+    log.yref = set_point_x;
+    //log.yref = yref_global[idx_traj * 2] * 100.0f;
+    log.tempo_computa = tempo_computacional;
+    log.cod_result = cod_resultado_mpc;
             
     // Envia para a fila (não bloqueia)
     xQueueSend(filaLog, &log, 0);
@@ -754,9 +959,7 @@ void taskSerialRx(void *parameter) {
                         comando = comando - 32; // Converte para maiúsculo
                     }
 
-                    // ===============================
                     // COMANDO DE DEGRAU (Ex: D,500,200,R)
-                    // ===============================
                     if (comando == 'D') {
                         // A lógica original de substring é mantida aqui.
                         int idx1 = buffer.indexOf(',');
@@ -785,9 +988,7 @@ void taskSerialRx(void *parameter) {
                         }
                     }
 
-                    // ===============================
                     // COMANDO SENOIDE: S,amplitude,frequencia
-                    // ===============================
                     else if (comando == 'S') { 
                       int idx1 = buffer.indexOf(',');
                       int idx2 = buffer.indexOf(',', idx1 + 1);
@@ -826,32 +1027,29 @@ void taskSerialRx(void *parameter) {
                       desativaControladorLQR();
                     }
 
-                    // ===============================
-                    // COMANDOS SIMPLES: L / R / P (Nova Lógica Robusta)
-                    // ===============================
                     // Verifica se o buffer tem APENAS 1 caractere (L, R ou P)
                     else if (buffer.length() == 1) { 
+
+                      // COMANDOS SIMPLES: L / R / P
                         if (comando == 'L' || comando == 'R' || comando == 'P') {
-                            comandoManual = comando; // Usa a versão maiúscula
                             
-                            // Desativa degrau/senoide se um comando manual for enviado
-                            degrauAtivo = false;
-                            senoideAtiva = false;
+                          comandoManual = comando;
+                            
+                          // Desativa degrau/senoide se um comando manual for enviado
+                          degrauAtivo = false;
+                          senoideAtiva = false;
                         } else if(comando == 'Z') {
-                            encoderPendCount = 0;
-                            encoderMotCount = 0;
-                            lastEncodedPend = 0;
-                            lastEncodedMot = 0;
+                          encoderPendCount = 0;
+                          encoderMotCount = 0;
+                          lastEncodedPend = 0;
+                          lastEncodedMot = 0;
                         }
                     }
                     
                     // Limpa o buffer após o processamento, independentemente do sucesso
                     buffer = "";
                 }
-            } 
-            
-            // === 2. CONSTRUÇÃO DO BUFFER (Não é terminador) ===
-            else {
+            } else {
                 // Adiciona o caractere ao buffer (Ignora '\n' e '\r' do input)
                 buffer += c;
             }
@@ -943,7 +1141,7 @@ void setup() {
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
   //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
+  xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 
 void loop() {
