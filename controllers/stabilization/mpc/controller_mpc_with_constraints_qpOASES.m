@@ -6,7 +6,6 @@
 % - MPC com restrições para estabilização em torno da posição invertida
 
 run init_project;
-%close all;
 clc;
 
 %% 1. PARÂMETROS GERAIS DO SISTEMA
@@ -17,7 +16,7 @@ tau = dados.geral.Ts;
 
 % Limites físicos (normalizados em SI)
 pos_limite     = 20/100;           % posição máxima do carrinho [m]
-ang_limite     = 12*(pi/180);      % desvio máximo do ângulo [rad]
+ang_limite     = 10*(pi/180);      % desvio máximo do ângulo [rad]
 vel_limite     = 50/100;           % velocidade máxima do carrinho [m/s]
 comando_limite = 12;               % tensão máxima [V]
 
@@ -29,14 +28,14 @@ ang_inicial = 0*(pi/180);
 pos_spt = 0/100;
 
 % Tempo total de simulação
-tsim = 30;
+tsim = 40;
 
 % Contador de falhas do QP
 qp_error_count = 0;
 
 %% 2. CONTROLADOR DE SWING-UP BASEADO EM ENERGIA
 
-dados.controlador.energia.k = 30;   % ganho da lei de energia
+dados.controlador.energia.k = 2;   % ganho da lei de energia
 dados.controlador.energia.n = 1;    % parâmetro reservado
 
 %% 3. DEFINIÇÃO DO MPC COM RESTRIÇÕES
@@ -51,18 +50,18 @@ MPC.Cr = [1 0 0 0;
           0 1 0 0];
 
 % Pesos do custo
-MPC.Qy = diag([500 100]);   % penalização dos estados rastreados
+MPC.Qy = diag([600 100]);   % penalização dos estados rastreados
 MPC.Qu = 0.001;            % penalização do esforço de controle
 MPC.N  = 35;                % horizonte de predição
 
 % Estados restringidos: posição, ângulo e velocidade
-MPC.Cc = [1 0 0 0;
-          0 1 0 0;
-          0 0 1 0];
+MPC.Cc = [1 0 0 0];
+          % 0 1 0 0;
+          % 0 0 1 0];
 
 % Limites das restrições
-MPC.ycmin = [-pos_limite; -ang_limite; -vel_limite];
-MPC.ycmax = [ pos_limite;  ang_limite;  vel_limite];
+MPC.ycmin = [-pos_limite];% -ang_limite; -vel_limite];
+MPC.ycmax = [ pos_limite];%  ang_limite;  vel_limite];
 
 MPC.umin = -comando_limite;
 MPC.umax =  comando_limite;
@@ -103,7 +102,7 @@ x_des = [0 180*pi/180 0 0];
 
 options = qpOASES_options('default');
 %options.enableFarBounds        = 0;
-options.maxIter                = 30;
+options.maxIter                = 8;
 options.terminationTolerance   = 1e-4;
 %options.boundTolerance         = 1e-6;
 %options.enableRegularisation   = 1;
@@ -116,7 +115,7 @@ for i = 1 : nt - MPC.N
 
     % Distúrbio aplicado aos 15 s
     %if lest(i) == 15.0
-    %    lesx(i,4) = lesx(i,4) - 65*pi/180;
+    %    lesx(i,4) = lesx(i,4) + 55*pi/180;
     %end
 
     if i == 1
@@ -160,12 +159,16 @@ for i = 1 : nt - MPC.N
             qp_error_count = qp_error_count + 1;
         end
 
+        if(qp_error_count > 0)
+            u = -15 * lesx(i,1);
+        end
+
     else
         % ---------- SWING-UP ----------
         u = swingUp_energy_based_controller(lesx(i,:), dados);
 
         % Proteção contra deslocamento excessivo
-        if abs(lesx(i,1)) >= 0.24
+        if abs(lesx(i,1)) >= 0.22
             u = -15 * lesx(i,1);
         end
 
@@ -174,6 +177,8 @@ for i = 1 : nt - MPC.N
 
     % Integração do modelo não linear
     xplus = RK4_discrete(lesx(i,:), u, tau, dados);
+
+    lesx(i,2) = wrapTo2Pi(lesx(i,2));
 
     % Armazenamento
     lesu(i)      = u;

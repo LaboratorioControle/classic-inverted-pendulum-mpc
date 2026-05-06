@@ -11,17 +11,20 @@ run sim_pendulum_senoid;
 y_exp = [posicao_import, vel_angular_import];
 
 % Vetor que armazena os parâmetros que serão otimizados
-%var(1) = dados.motor.Rm;
-%var(2) = dados.motor.Kb;
-%var(3) = dados.motor.Kt;
-%var(4) = dados.motor.R;
+var(1) = dados.motor.Rm;
+var(2) = dados.motor.Kb;
+var(3) = dados.motor.Kt;
+var(4) = dados.motor.R;
+var(5) = dados.carro.c;
 
-var(1) = dados.pendulo.m;
-var(2) = dados.carro.m;
+%var(1) = dados.pendulo.m;
+%var(2) = dados.carro.m;
+%var(3) = dados.pendulo.b;
 
-%var(1) = dados.carro.c;
-%var(2) = dados.pendulo.I;
-%var(3) = dados.carro.Fc;
+% var(1) = dados.pendulo.I;
+% var(2) = dados.pendulo.b;
+%var(2) = dados.carro.c;
+%var(3) = dados.pendulo.m;
 
 % A estratégia utilizada é otimizar multiplicadores dos parâmetros
 % informados. Isso é feito para não precisar normalizar os dados e todos
@@ -29,8 +32,8 @@ var(2) = dados.carro.m;
 p0 = ones(1, length(var));
 
 % Define os limites dos multiplicadores dos parâmetros
-lb_val = 0.8;
-ub_val = 2;
+lb_val = 0.001;
+ub_val = 1000;
 
 lb = ones(1,length(var))* lb_val;
 ub = ones(1,length(var))* ub_val;
@@ -40,7 +43,7 @@ options = optimoptions('lsqnonlin',...
     'Display','iter',...
     'MaxIterations',100);options = optimoptions('lsqnonlin',...
     'Display','iter',...
-    'MaxIterations',200,...
+    'MaxIterations',20,...
     'StepTolerance',1e-10,...
     'FunctionTolerance',1e-10);
 

@@ -58,7 +58,8 @@ end
 
 % Conversão de unidades
 x(:,1) = x(:,1) * 100;         % m → cm
-x(:,2) = wrapTo360(x(:,2) * (180/pi));    % rad → °
+%x(:,2) = wrapTo360(x(:,2) * (180/pi));    % rad → °
+x(:,2) = x(:,2) * (180/pi);
 x(:,3) = x(:,3) * 100;         % m/s → cm/s
 x(:,4) = x(:,4) * (180/pi);    % rad/s → °/s
 
@@ -83,31 +84,57 @@ x2(:,4) = x2(:,4) * (180/pi);
 %% DADOS EXPERIMENTAIS
 
 % Importação dos dados experimentais
-importados = importdata('data\raw\dados_16032026_degrau_D500_I200_L.csv');
+importados = importdata('data\raw\Modelo\dados_16032026_degrau_D500_I200_L.csv');
 importados = importados.data;
 
-off_set = 95;
-end_set = 4090;
+off_set = 0.95;
+end_set = 40;
 
-t_import = importados(:,1) - importados(off_set,1);
-t_import = t_import/1000;
-t_import = t_import(off_set:end_set);
 
-angulo_import      = importados(off_set:end_set,2);
-vel_angular_import = importados(off_set:end_set,3);
-posicao_import     = importados(off_set:end_set,4);
-velocidade_import  = importados(off_set:end_set,5);
-u_import           = importados(off_set:end_set,6);
+t_import = importados(:,1)/1000;
+t_import = t_import - t_import(1);
+
+idx = (t_import >= off_set) & (t_import <= end_set + off_set);
+
+t_import = t_import(idx);
+t_import = t_import - t_import(1);
+
+
+angulo_import      = importados(idx,2);
+vel_angular_import = importados(idx,3);
+posicao_import     = importados(idx,4);
+velocidade_import  = importados(idx,5);
+u_import           = importados(idx,6);
+
+angulo_import = unwrap(deg2rad(angulo_import));
+angulo_import = rad2deg(angulo_import);
+
+
+% ===================== INTERPOLAÇÃO =====================
+pos_sim_interp     = interp1(t, x(:,1), t_import, 'linear', 'extrap');
+ang_sim_interp     = interp1(t, x(:,2), t_import, 'linear', 'extrap');
+vel_sim_interp     = interp1(t, x(:,3), t_import, 'linear', 'extrap');
+vel_ang_sim_interp = interp1(t, x(:,4), t_import, 'linear', 'extrap');
+
+% ===================== FUNÇÃO R² =====================
+calc_R2 = @(y_exp, y_sim) ...
+    1 - sum((y_exp - y_sim).^2) / sum((y_exp - mean(y_exp)).^2);
+
+R2_pos = calc_R2(posicao_import, pos_sim_interp)
+R2_ang = calc_R2(angulo_import, ang_sim_interp)
+R2_vel = calc_R2(velocidade_import, vel_sim_interp)
+R2_vel_ang = calc_R2(vel_angular_import, vel_ang_sim_interp)
 
 %% PLOT DOS RESULTADOS (DINÂMICO)
 
 figure;
+set(gcf, 'Units', 'centimeters', 'Position', [5 5 20 15])
 
 % ===================== POSIÇÃO DO CARRINHO =====================
 subplot(2,2,1); hold on; grid on;
-title('Posição do Carro');
+title('Posição do Carro (cm)');
 xlabel('Tempo (s)');
-ylabel('Posição (cm)');
+ylim([-20,1]);
 
 if plot_experimental
     stairs(t_import, posicao_import, 'LineWidth', 1.1);
@@ -127,57 +154,52 @@ legend(legend_entries);
 
 % ===================== ÂNGULO DO PÊNDULO =====================
 subplot(2,2,2); hold on; grid on;
-title('Ângulo');
+title('Ângulo (°)');
 xlabel('Tempo (s)');
-ylabel('Ângulo (°)');
+ylim([-30,30]);
 
 if plot_experimental
-    stairs(t_import, angulo_import, 'LineWidth', 1.1);
+    stairs(t_import, angulo_import, 'LineWidth', 1);
 end
 if plot_continuo
     plot(t2, x2(:,2), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,2), 'LineWidth', 1.1);
+    stairs(t, x(:,2), 'LineWidth', 1);
 end
 
-legend(legend_entries);
 
 % ===================== VELOCIDADE DO CARRINHO =====================
 subplot(2,2,3); hold on; grid on;
-title('Velocidade do Carro');
+title('Velocidade (cm/s)');
 xlabel('Tempo (s)');
-ylabel('Velocidade (cm/s)');
 
 if plot_experimental
-    stairs(t_import, velocidade_import, 'LineWidth', 1.1);
+    stairs(t_import, velocidade_import, 'LineWidth', 1);
 end
 if plot_continuo
     plot(t2, x2(:,3), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,3), 'LineWidth', 1.1);
+    stairs(t, x(:,3), 'LineWidth', 1);
 end
 
-legend(legend_entries);
 
 % ===================== VELOCIDADE ANGULAR =====================
 subplot(2,2,4); hold on; grid on;
-title('Velocidade Angular');
+title('Velocidade Angular (°/s)');
 xlabel('Tempo (s)');
-ylabel('Velocidade Angular (°/s)');
 
 if plot_experimental
-    stairs(t_import, vel_angular_import, 'LineWidth', 1.1);
+    stairs(t_import, vel_angular_import, 'LineWidth', 1);
 end
 if plot_continuo
     plot(t2, x2(:,4), 'LineWidth', 1.5);
 end
 if plot_discreto
-    stairs(t, x(:,4), 'LineWidth', 1.1);
+    stairs(t, x(:,4), 'LineWidth', 1);
 end
 
-legend(legend_entries);
 
 
 %% LIMPEZA
