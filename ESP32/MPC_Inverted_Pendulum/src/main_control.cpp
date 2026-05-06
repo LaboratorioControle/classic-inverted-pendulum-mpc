@@ -320,11 +320,68 @@ float swingUpController() {
 
 
 // ==============================
+// GERAÇÃO DE TRAJETÓRIA DE REFERÊNCIA
+// ==============================
+void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
+
+    nt = (int)(duracao_trajetoria / Ts);
+
+    float ref_offset = 0.0f; // posição central
+    float ref_amp = 0.15f; // amplitude de 15 cm
+    float ref_freq = 0.2f; // frequência de 0.1 Hz
+
+    for (int i = 0; i < nt; i++) {
+
+        float t = i * Ts;
+
+       float ref_x = 0;
+
+        // Degrau
+        // if (t >= 5) {
+        //     ref_x = -0.07;
+        // }
+
+        // if (t >= 15) {
+        //     ref_x = -0.15;
+        // }
+
+        // Disturbio
+        if (t >= 1) {
+            ref_x = 0.05;
+        }
+
+        if (t >= 2) {
+            ref_x = 0.1;
+        }
+
+        if (t >= 3) {
+            ref_x = 0.15;
+        }
+
+        //float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+
+        yref_global[i * 2 + 0] = ref_x; // posição
+        yref_global[i * 2 + 1] = 0.0f;  // ângulo
+
+    }
+}
+
+float ruidoGaussiano(float media, float desvio) {
+  float u1 = ((float)esp_random() / UINT32_MAX);
+  float u2 = ((float)esp_random() / UINT32_MAX);
+
+  float z0 = sqrt(-2.0f * log(u1)) * cos(2.0f * PI * u2);
+  return z0 * desvio + media;
+}
+
+
+// ==============================
 // FUNÇÃO PARA CONTROLE LQR
 // ==============================
 void controleEstadoLQR() {
 
   float erroX = x - (set_point_x / 100.0f);  // converte cm → metros, se sua pos está em m
+  //float erroX = x - (yref_global[(idx_traj+1)*2]);  // converte cm → metros, se sua pos está em m
   float erroTheta = theta - PI; 
 
   float u = 0;
@@ -332,13 +389,41 @@ void controleEstadoLQR() {
   bool emZonaPerigo = abs(x) >= FIM_CURSO_VIRTUAL;
   bool emRegiaoLQR = (abs(erroTheta) < THETA_SWITCH) && (abs(theta_dot) < THETA_DOT_SWITCH);
 
-  if (emZonaPerigo){
-    u = - K[3] * erroX;
-  }else if(emRegiaoLQR){
+  if(emRegiaoLQR){
     u = -(K[0]*erroX + K[1]*erroTheta + K[2]*x_dot + K[3]*theta_dot);
+
+
+    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
+    //     disturbioAtivo = true;
+    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+    // }
+
+    // if (disturbioAtivo) { 
+    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
+    //         u = constrain(u, -12.0, 12.0);
+    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
+    //     } else {
+    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
+    //     }
+    // }
+
+    if (emZonaPerigo){
+      u = 0;
+    }
+
   }else{
     u = swingUpController();
+
+    if (emZonaPerigo){
+      u = - K[3] * x;
+    }
   }
+
+  // idx_traj++;
+  //   if (idx_traj >= nt)
+  //       idx_traj = nt - 1;
 
   u = constrain(u, -12.0, 12.0);
   ulast = u;
@@ -361,8 +446,9 @@ void desativaControladorLQR(){
 
 void ativaControladorLQR(){
   controleLQRAtivo = true;
-  degrauAtivo = false;
-  senoideAtiva = false;
+
+  idx_traj = 0;
+  gerarTrajetoriaSeno(35.0f, PERIODO / 1000.0f);
 
   if (theta <= 1e-2) {
     ledcWrite(1, 200);
@@ -441,8 +527,8 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
-  // float pontos[5] = {1, 7, 14, 21, 28};
-  // mpc.compute_MPC_Matrices(pontos);
+  //  float pontos[5] = {1, 7, 14, 21, 28};
+  //  mpc.compute_MPC_Matrices(pontos);
   mpc.compute_MPC_Matrices();
 
   // float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
@@ -463,8 +549,7 @@ void controleEstadoMPC() {
 
   if(emRegiaoMPC){
     float estados[4] = {x, erroTheta, x_dot, theta_dot};
-    //float spt[2] = {set_point_x / 100.0f, 0.0f};
-    //float spt[2] = {0 / 100.0f, 0.0f};
+    float spt[2] = {set_point_x / 100.0f, 0.0f};
 
     unsigned long tempo_inicio = micros();
     //mpc.generate_yref(spt, NULL, 0, false);
@@ -481,21 +566,21 @@ void controleEstadoMPC() {
     }
 
 
-    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
-    if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
-        disturbioAtivo = true;
-        tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
-    }
+    // //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
+    //     disturbioAtivo = true;
+    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+    // }
 
-    if (disturbioAtivo) { 
-        if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
-            u += amplitudeDisturbio; // Soma o pulso de tensão no comando
-            u = constrain(u, -12.0, 12.0);
-            disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
-        } else {
-            disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
-        }
-    }
+    // if (disturbioAtivo) { 
+    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
+    //         u = constrain(u, -12.0, 12.0);
+    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
+    //     } else {
+    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
+    //     }
+    // }
 
 
 
@@ -527,50 +612,6 @@ void controleEstadoMPC() {
     ledcWrite(0, 0);
     ledcWrite(1, (int)(-u_pwm));
   }
-}
-
-void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
-
-    nt = (int)(duracao_trajetoria / Ts);
-
-    float ref_offset = 0.0f; // posição central
-    float ref_amp = 0.15f; // amplitude de 15 cm
-    float ref_freq = 0.2f; // frequência de 0.1 Hz
-
-    for (int i = 0; i < nt; i++) {
-
-        float t = i * Ts;
-
-        float ref_x = 0;
-
-        // Degrau
-        // if (t >= 5) {
-        //     ref_x = -0.07;
-        // }
-
-        // if (t >= 15) {
-        //     ref_x = -0.15;
-        // }
-
-        // Disturbio
-        if (t >= 1) {
-            ref_x = 0.05;
-        }
-
-        if (t >= 2) {
-            ref_x = 0.1;
-        }
-
-        if (t >= 3) {
-            ref_x = 0.15;
-        }
-
-        //float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
-
-        yref_global[i * 2 + 0] = ref_x; // posição
-        yref_global[i * 2 + 1] = 0.0f;  // ângulo
-
-    }
 }
 
 void desativaControladorMPC(){
@@ -679,14 +720,14 @@ void gerenciaBotoes() {
     // ESTADO NORMAL
     // ===============================
     if (liga && !desliga) {
-        //K[0] = -112; K[1] = 215; K[2] = -106; K[3] = 34;
-        //ativaControladorLQR();
-        ativaControladorMPC();
+        K[0] = -112; K[1] = 215; K[2] = -106; K[3] = 34;
+        ativaControladorLQR();
+        //ativaControladorMPC();
     }
 
     if (desliga && !liga) {
-        //desativaControladorLQR();
-        desativaControladorMPC();
+        desativaControladorLQR();
+        //desativaControladorMPC();
         degrauAtivo = false;
         senoideAtiva = false;
     }
@@ -848,6 +889,31 @@ void taskLeitura(void *parameter) {
 
     theta_ant = theta;
 
+
+    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
+  //   if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1600)) {
+  //       disturbioAtivo = true;
+  //       tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
+  //   }
+
+  //   if (disturbioAtivo) { 
+  //   if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
+
+  //       float ruido_x       = ruidoGaussiano(0.0f, 0.02f);   // metros (~ 1cm)
+  //       float ruido_x_dot   = ruidoGaussiano(0.0f, 0.01f);    // m/s
+  //       float ruido_theta   = ruidoGaussiano(0.0f, 0.09f);   // rad (~5°)
+  //       float ruido_theta_d = ruidoGaussiano(0.0f, 0.09f);    // (15 rad/s)
+
+  //       //x         += ruido_x;
+  //       //x_dot     += ruido_x_dot;
+  //       theta     += ruido_theta;
+  //       theta_dot += ruido_theta_d;
+
+  //   } else {
+  //       disturbioAtivo = false;
+  //   }
+  // }
+
     // Leitura do potênciometro para definição do set point da posição
     int leituraPot = analogRead(POTENCIOMETRO);
     set_point_x = -1 *(((float)leituraPot / 4095.0f) * guia - guia/2.0);
@@ -861,8 +927,8 @@ void taskLeitura(void *parameter) {
     log.x_cm       = x * 100.0f;
     log.x_dot_cm   = x_dot * 100.0f;
     log.u = ulast;
-    //log.yref = set_point_x;
-    log.yref = yref_global[idx_traj * 2] * 100.0f;
+    log.yref = set_point_x;
+    //log.yref = yref_global[idx_traj * 2] * 100.0f;
     log.tempo_computa = tempo_computacional;
     log.cod_result = cod_resultado_mpc;
             
@@ -1073,7 +1139,7 @@ void setup() {
 
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
-  //xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
   //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
