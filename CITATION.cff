@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "Se você utilizar este software, por favor cite-o conforme abaixo."
+type: software
+
+title: "Classic Inverted Pendulum MPC on ESP32"
+abstract: "Implementação de um controlador preditivo baseado em modelo (MPC) em plataforma embarcada ESP32 para o sistema pêndulo-carrinho, com foco em execução em tempo real e validação experimental."
+
+authors:
+  - family-names: "Henrique"
+    given-names: "Mateus"
+    affiliation: "Universidade Federal de Lavras"  # ajusta se quiser
+
+keywords:
+  - Model Predictive Control
+  - MPC
+  - Embedded Systems
+  - ESP32
+  - Inverted Pendulum
+  - Real-Time Control
+
+license: MIT   # ⚠️ confere se seu repo já tem LICENSE, senão troca ou cria
+
+version: "1.0.0"
+
+date-released: "2026-05-11"
+
+url: "https://github.com/LaboratorioControle/classic-inverted-pendulum-mpc"
+repository-code: "https://github.com/LaboratorioControle/classic-inverted-pendulum-mpc"
