@@ -36,8 +36,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 // Resolução do encoder
 const int PULSOS_POR_REV_PEND = 600;  
 
-// PRECISA VERIFICAR SE PRECISA
-const int RESOLUCAO_PEND = PULSOS_POR_REV_PEND * 4;  // Quadratura 4x
+// Quadratura 4x
+const int RESOLUCAO_PEND = PULSOS_POR_REV_PEND * 4;  
 
 // Armazena a contagem de pulsos
 volatile long encoderPendCount = 0;     
@@ -98,7 +98,6 @@ const float FIM_CURSO_VIRTUAL =  16.5/100.0;
 // Setpoint posição
 float set_point_x = 0.0;
 
-
 // Comando via botões físicos
 bool ajustandoPosicao = false; 
 bool emAjuste = false;
@@ -111,7 +110,7 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::CLASSIC, 15); //LINEAR = 4, EXPONENCIAL = 8, CLASSIC = 15
+MPC mpc = MPC(MPCForm::CLASSIC, 10);
 float pos_limite = 18.0/100.0;
 float ang_limite = 15.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
@@ -120,12 +119,11 @@ float ulast = 0;
 
 int idx_traj = 0;
 float yref_global[3500 * 2]; // ny = 2 (posição, ângulo)
-int nt = 0;                    // tamanho da trajetória
+int nt = 0;                   
 
 // Tempo para cálculo do sinal de controle do MPC
 float tempo_computacional = 0.0;
 float cod_resultado_mpc = 0.0;
-
 
 // ==============================
 // DADOS DA PLANTA
@@ -334,31 +332,7 @@ void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
 
         float t = i * Ts;
 
-       float ref_x = 0;
-
-        // Degrau
-        // if (t >= 5) {
-        //     ref_x = -0.07;
-        // }
-
-        // if (t >= 15) {
-        //     ref_x = -0.15;
-        // }
-
-        // Disturbio
-        if (t >= 1) {
-            ref_x = 0.05;
-        }
-
-        if (t >= 2) {
-            ref_x = 0.1;
-        }
-
-        if (t >= 3) {
-            ref_x = 0.15;
-        }
-
-        //float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+        float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
 
         yref_global[i * 2 + 0] = ref_x; // posição
         yref_global[i * 2 + 1] = 0.0f;  // ângulo
@@ -392,23 +366,6 @@ void controleEstadoLQR() {
   if(emRegiaoLQR){
     u = -(K[0]*erroX + K[1]*erroTheta + K[2]*x_dot + K[3]*theta_dot);
 
-
-    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
-    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
-    //     disturbioAtivo = true;
-    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
-    // }
-
-    // if (disturbioAtivo) { 
-    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
-    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
-    //         u = constrain(u, -12.0, 12.0);
-    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
-    //     } else {
-    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
-    //     }
-    // }
-
     if (emZonaPerigo){
       u = 0;
     }
@@ -420,10 +377,6 @@ void controleEstadoLQR() {
       u = - K[3] * x;
     }
   }
-
-  // idx_traj++;
-  //   if (idx_traj >= nt)
-  //       idx_traj = nt - 1;
 
   u = constrain(u, -12.0, 12.0);
   ulast = u;
@@ -486,14 +439,12 @@ void setupMPC(){
 
   mpc.Cc = Matrix(1,4);
   mpc.Cc(0,0)=1; mpc.Cc(0,1)=0; mpc.Cc(0,2)=0; mpc.Cc(0,3)=0;
-  //mpc.Cc(1,0)=0; mpc.Cc(1,1)=0; mpc.Cc(1,2)=1; mpc.Cc(1,3)=0;
-  //mpc.Cc(2,0)=0; mpc.Cc(2,1)=0; mpc.Cc(2,2)=1; mpc.Cc(2,3)=0;
 
   // =========================
   // PESOS DO MPC
   // =========================
   mpc.Qy = Matrix(2,2);
-  mpc.Qy(0,0)=500; mpc.Qy(0,1)=0; //LINEAR = 500, EXPONENCIAL = 450, CLASSICO = 500
+  mpc.Qy(0,0)=500; mpc.Qy(0,1)=0;
   mpc.Qy(1,0)=0; mpc.Qy(1,1)=100;
 
   mpc.Qu = Matrix(1,1);
@@ -504,13 +455,9 @@ void setupMPC(){
   // =========================
   mpc.ycmax = Matrix(1,1);
   mpc.ycmax(0,0)= pos_limite;
-  //mpc.ycmax(1,0)= ang_limite;
-  //mpc.ycmax(2,0)= vel_limite;
 
   mpc.ycmin = Matrix(1,1);
   mpc.ycmin(0,0)= -pos_limite;
-  //mpc.ycmin(1,0)= -ang_limite;
-  //mpc.ycmin(2,0)= -vel_limite;
 
   mpc.umax = Matrix(1,1); 
   mpc.umax(0,0) = comando_limite;
@@ -527,10 +474,16 @@ void setupMPC(){
   // =========================
   // CALCULA MATRIZES
   // =========================
+
+  // Parametrização LINEAR
   //  float pontos[5] = {1, 7, 14, 21, 28};
   //  mpc.compute_MPC_Matrices(pontos);
+
+
+  // Método Clássico
   mpc.compute_MPC_Matrices();
 
+  // Parametrização Exponencial
   // float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
   // float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
   // float tau = PERIODO/1000;
@@ -564,26 +517,6 @@ void controleEstadoMPC() {
     if (mpc.get_solver_result_code() != 0){
         u = 0;
     }
-
-
-    // //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
-    // if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1505)) {
-    //     disturbioAtivo = true;
-    //     tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
-    // }
-
-    // if (disturbioAtivo) { 
-    //     if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
-    //         u += amplitudeDisturbio; // Soma o pulso de tensão no comando
-    //         u = constrain(u, -12.0, 12.0);
-    //         disturbioAtivo = true;  // Garante que o distúrbio permaneça ativo durante a duração definida
-    //     } else {
-    //         disturbioAtivo = false;  // Desativa o distúrbio após o tempo definido
-    //     }
-    // }
-
-
-
 
   }else{
     u = swingUpController();
@@ -721,13 +654,13 @@ void gerenciaBotoes() {
     // ===============================
     if (liga && !desliga) {
         K[0] = -112; K[1] = 215; K[2] = -106; K[3] = 34;
-        ativaControladorLQR();
-        //ativaControladorMPC();
+        //ativaControladorLQR();
+        ativaControladorMPC();
     }
 
     if (desliga && !liga) {
-        desativaControladorLQR();
-        //desativaControladorMPC();
+        //desativaControladorLQR();
+        desativaControladorMPC();
         degrauAtivo = false;
         senoideAtiva = false;
     }
@@ -788,7 +721,7 @@ void atualizarDisplay() {
   // ----- Bloco MOTOR -----
   display.setTextSize(1);
   display.setCursor(0, 14);
-  display.print("Posição");
+  display.print("Posicao");
 
   display.setTextSize(2);
   display.setCursor(50, 24);
@@ -888,31 +821,6 @@ void taskLeitura(void *parameter) {
     theta_dot = theta_dot_filtrado;
 
     theta_ant = theta;
-
-
-    //--- INÍCIO DA INJEÇÃO DO DISTÚRBIO ---
-  //   if (!disturbioAtivo && (idx_traj >= 1500 && idx_traj < 1600)) {
-  //       disturbioAtivo = true;
-  //       tempoInicioDisturbio = millis(); // Inicia o temporizador do distúrbio
-  //   }
-
-  //   if (disturbioAtivo) { 
-  //   if (millis() - tempoInicioDisturbio < duracaoDisturbio) {
-
-  //       float ruido_x       = ruidoGaussiano(0.0f, 0.02f);   // metros (~ 1cm)
-  //       float ruido_x_dot   = ruidoGaussiano(0.0f, 0.01f);    // m/s
-  //       float ruido_theta   = ruidoGaussiano(0.0f, 0.09f);   // rad (~5°)
-  //       float ruido_theta_d = ruidoGaussiano(0.0f, 0.09f);    // (15 rad/s)
-
-  //       //x         += ruido_x;
-  //       //x_dot     += ruido_x_dot;
-  //       theta     += ruido_theta;
-  //       theta_dot += ruido_theta_d;
-
-  //   } else {
-  //       disturbioAtivo = false;
-  //   }
-  // }
 
     // Leitura do potênciometro para definição do set point da posição
     int leituraPot = analogRead(POTENCIOMETRO);
@@ -1086,7 +994,6 @@ void taskDisplay(void *parameter) {
 
     while (true) {
         vTaskDelayUntil(&xLastWakeTime, displayPeriodo);
-
         atualizarDisplay();
     }
 }
