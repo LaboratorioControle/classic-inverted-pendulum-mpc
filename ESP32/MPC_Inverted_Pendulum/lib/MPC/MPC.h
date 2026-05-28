@@ -18,7 +18,7 @@
 
 
 /// MPC prediction horizon
-#define N 33 // Exponencial: 33, Linear: 35, CLASSIC: 33
+#define N 33
 
 /// Number of states in the system
 #define n 4 
@@ -33,7 +33,6 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
-// O adequado para o Linear é 5 o Exponencial é 3
 #define nre 3
 
 /// Total number of decision variables in the parameterized system.
@@ -161,7 +160,6 @@ public:
      * of the calculated optimal sequence.
      *
      * @param ulast last control signal value applied
-     * @param spt vector of desired setpoints
      * @param err vector of system errors
      * @return pointer to the calculated control signal vector
      */

@@ -18,7 +18,6 @@ void MPC::init_solver_qp(int nv_decision, int nc_constraints){
     qpOASES::Options options;
     options.setToMPC();
 
-    // tolerâncias mais rígidas
     options.terminationTolerance = 1e-4; 
     options.printLevel = qpOASES::PL_NONE; 
     
@@ -90,7 +89,7 @@ void MPC::compute_Cost_Matrices(){
         inter_Psi_i = new_inter;
     }
 
-    // Conversão para vetores Row-Major
+    // Conversion to Row-Major vectors
     matrix_to_realt(H_temp, H);
     matrix_to_realt(F1_temp, F1);
     matrix_to_realt(F2_temp, F2);
@@ -108,11 +107,11 @@ void MPC::compute_Constraints_Matrices(){
     if(Dc.r==0) 
         Dc = Matrix::zeros(Cc.r, B.c);
         
-    // Declaração das matrizes de restrição auxiliares
+    // Declaration of auxiliary constraint matrices
     Matrix inter_Psi_i = B;
     Matrix Phi_i = A;
 
-    // Pré-Alocação de Memória
+    // Memory pre-allocation
     Matrix Aineq_1(2*N*nc,nU, 0.0);
     Matrix Aineq_2(2*N*nu,nU, 0.0);
 
@@ -220,7 +219,7 @@ void MPC::compute_Constraints_Matrices(){
     Matrix::insertBlock(G3_temp, 0, 0, G3_1);
     Matrix::insertBlock(G3_temp, G3_1.r, 0, G3_2);
 
-    // Transformação do tipo Matrix para o tipo realt Row-Major
+    // Conversion from Matrix type to Row-Major realt type
     matrix_to_realt(Aineq_temp, Aineq);
     matrix_to_realt(G1_temp, G1);
     matrix_to_realt(G2_temp, G2);
@@ -233,7 +232,7 @@ void MPC::compute_Constraints_Matrices(){
         compute_Aineq_reduced(Pi_e);
     }
 
-    // Computa as matrizes de restrição das variáveis de comando
+    // Computes the constraint matrices for the control variables
     int k = 0;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < nu; j++) {
@@ -244,7 +243,6 @@ void MPC::compute_Constraints_Matrices(){
     }
 }
 
-// Matrizes reduzidas para parametrização
 void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
     for (int i = 0; i < np; i++) {
         for (int j = 0; j < np; j++) {
@@ -262,9 +260,6 @@ void MPC::compute_H_reduced(qpOASES::real_t* Pi_ref){
             H_p[i*np + j] = sum;
         }
     }
-
-    //for (int i = 0; i < np; i++)
-    //    H_p[i*np + i] += 1e-6;
 }
 
 void MPC::compute_F_reduced(qpOASES::real_t* Pi_ref){
@@ -322,11 +317,11 @@ void MPC::compute_Bineq_reduced(qpOASES::real_t* Pi_ref){
 }
 
 void MPC::compute_Pi_r(float* pontos){
-    // zera tudo
+    // All zero initialization
     for (int i = 0; i < N*nu*np; i++)
         Pi_r[i] = 0.0;
 
-    for (int i = 1; i <= N; i++) {   // MATLAB-style pra facilitar tradução
+    for (int i = 1; i <= N; i++) {  
         int row0 = (i-1)*nu;
 
         if (i == 1) {
@@ -362,14 +357,14 @@ void MPC::compute_Pi_r(float* pontos){
                 float(i - pontos[ji]) /
                 float(pontos[ji+1] - pontos[ji]);
 
-            // bloco ji
+            // block ji
             for (int k = 0; k < nu; k++) {
                 int row = row0 + k;
                 int col = ji*nu + k;
                 Pi_r[row*np + col] = alpha;
             }
 
-            // bloco ji+1
+            // block ji+1
             for (int k = 0; k < nu; k++) {
                 int row = row0 + k;
                 int col = (ji+1)*nu + k;
@@ -478,7 +473,7 @@ void MPC::solver_qp(){
     int nWSR_ = nWSR;
     cpu_time[0] = 10;
 
-    // Verifica se o solver entrou em estado de falha
+    // Check if the solver has entered a failure state
     if (solver_result_code == 54) {
         qp_initialized = false;
     }
@@ -566,7 +561,6 @@ void MPC::compute_util_opt(){
 }
 
 float* MPC::compute_MPC_Command(float ulast, float* err){
-    
     
     build_cost_vector(err);
     build_constraints(err, ulast);
