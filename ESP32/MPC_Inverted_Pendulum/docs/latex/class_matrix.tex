@@ -1,0 +1,381 @@
+\doxysection{Matrix Class Reference}
+\hypertarget{class_matrix}{}\label{class_matrix}\index{Matrix@{Matrix}}
+
+
+Lightweight dynamic matrix class for embedded systems.  
+
+
+
+
+{\ttfamily \+\#include $<$Matrix.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\doxymbox{\hyperlink{class_matrix_a2dba13c45127354c9f75ef576f49269b}{Matrix}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix_a444045d43a08a30b122628a7f93729de}{Matrix}} (size\+\_\+t r\+\_\+, size\+\_\+t c\+\_\+, float v=0.\+0)
+\begin{DoxyCompactList}\small\item\em \doxylink{class_matrix}{Matrix} constructor. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_matrix_aaf829bff49fe2d6324c622350c532815}{resize}} (size\+\_\+t r\+\_\+, size\+\_\+t c\+\_\+, float v=0.\+0)
+\begin{DoxyCompactList}\small\item\em Resize the matrix and fill with a given value. \end{DoxyCompactList}\item 
+float \& \doxymbox{\hyperlink{class_matrix_a91e0900aa60acb159bd8c455dfe07216}{operator()}} (size\+\_\+t i, size\+\_\+t j)
+\begin{DoxyCompactList}\small\item\em Access matrix element (modifiable). \end{DoxyCompactList}\item 
+float \doxymbox{\hyperlink{class_matrix_a326d19e4839130563f60799bdb5e2c41}{operator()}} (size\+\_\+t i, size\+\_\+t j) const
+\begin{DoxyCompactList}\small\item\em Access matrix element (read-\/only). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_abe4346c1303ee7eb35e7f082d219027f}{eye}} (int n\+\_\+)
+\begin{DoxyCompactList}\small\item\em Generate an identity matrix. \end{DoxyCompactList}\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_addb5b0434f297567e0ae13d5ee543a00}{zeros}} (int \doxymbox{\hyperlink{class_matrix_a88717be7359177961a0c33ca228e4fca}{r}}, int \doxymbox{\hyperlink{class_matrix_a3f75ba22d192bf1983308afb25030289}{c}})
+\begin{DoxyCompactList}\small\item\em Create a matrix filled with zeros. \end{DoxyCompactList}\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_aa7351e0d77226aa2d2618287791996dc}{transpose}} (const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&A)
+\begin{DoxyCompactList}\small\item\em Compute the transpose of a matrix. \end{DoxyCompactList}\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_a0e045174ca170c541c1468830b006d9a}{mul}} (const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&A, const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&B)
+\begin{DoxyCompactList}\small\item\em \doxylink{class_matrix}{Matrix} multiplication. \end{DoxyCompactList}\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_a24776e0b2b3592498c2a5ea2699bb203}{smul}} (float s, const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&A)
+\begin{DoxyCompactList}\small\item\em Scalar-\/matrix multiplication. \end{DoxyCompactList}\item 
+static void \doxymbox{\hyperlink{class_matrix_a78c4051654cdf3091b7f3d238421933e}{insert\+Block}} (\doxymbox{\hyperlink{class_matrix}{Matrix}} \&dst, int r0, int c0, const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&src)
+\begin{DoxyCompactList}\small\item\em Insert a matrix block into another matrix. \end{DoxyCompactList}\item 
+static \doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_matrix_a921f70a095b44932088a65743d5c1af9}{P\+\_\+i}} (int i, int n1, int N\+\_\+)
+\begin{DoxyCompactList}\small\item\em Generate the selection matrix (P\+\_\+i). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+size\+\_\+t \doxymbox{\hyperlink{class_matrix_a88717be7359177961a0c33ca228e4fca}{r}}
+\begin{DoxyCompactList}\small\item\em Number of rows of the matrix. \end{DoxyCompactList}\item 
+size\+\_\+t \doxymbox{\hyperlink{class_matrix_a3f75ba22d192bf1983308afb25030289}{c}}
+\begin{DoxyCompactList}\small\item\em Number of columns of the matrix. \end{DoxyCompactList}\item 
+std::\+vector$<$ float $>$ \doxymbox{\hyperlink{class_matrix_ac139daadc80460d2544dd8d1401a1ebb}{d}}
+\begin{DoxyCompactList}\small\item\em \doxylink{class_matrix}{Matrix} data stored in row-\/major order. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Lightweight dynamic matrix class for embedded systems. 
+
+This class implements a simple matrix structure using a contiguous std::\+vector$<$float$>$ storage in row-\/major format. It provides basic linear algebra operations required for control algorithms such as Model Predictive Control (\doxylink{class_m_p_c}{MPC}).
+
+The class is designed to be lightweight and suitable for microcontrollers, avoiding heavy dependencies from full linear algebra libraries. 
+
+\label{doc-constructors}
+\Hypertarget{class_matrix_doc-constructors}
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_matrix_a2dba13c45127354c9f75ef576f49269b}\index{Matrix@{Matrix}!Matrix@{Matrix}}
+\index{Matrix@{Matrix}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{Matrix()}{Matrix()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \label{class_matrix_a2dba13c45127354c9f75ef576f49269b} 
+Matrix::\+\+Matrix (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Default constructor. 
+
+Creates an empty matrix with zero rows and columns. \Hypertarget{class_matrix_a444045d43a08a30b122628a7f93729de}\index{Matrix@{Matrix}!Matrix@{Matrix}}
+\index{Matrix@{Matrix}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{Matrix()}{Matrix()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily \label{class_matrix_a444045d43a08a30b122628a7f93729de} 
+Matrix::\+\+Matrix (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{r\+\_\+}{, }\item[{size\+\_\+t}]{c\+\_\+}{, }\item[{float}]{v}{ = {\ttfamily 0.0}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\doxylink{class_matrix}{Matrix} constructor. 
+
+Creates a matrix of size r × c initialized with value v.
+
+
+\begin{DoxyParams}{Parameters}
+{\em r\+\_\+} & Number of rows \\
+\hline
+{\em c\+\_\+} & Number of columns \\
+\hline
+{\em v} & Initial value for all elements (default = 0.\+0) \\
+\hline
+\end{DoxyParams}
+
+
+\label{doc-func-members}
+\Hypertarget{class_matrix_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_matrix_abe4346c1303ee7eb35e7f082d219027f}\index{Matrix@{Matrix}!eye@{eye}}
+\index{eye@{eye}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{eye()}{eye()}}
+{\footnotesize\ttfamily \label{class_matrix_abe4346c1303ee7eb35e7f082d219027f} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+eye (\begin{DoxyParamCaption}\item[{int}]{n\+\_\+}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Generate an identity matrix. 
+
+Creates a square matrix where diagonal elements are 1 and all other elements are 0.
+
+\[I =
+\begin{bmatrix}
+1 & 0 & \dots & 0 \\
+0 & 1 & \dots & 0 \\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \dots & 1
+\end{bmatrix}
+\]
+
+
+\begin{DoxyParams}{Parameters}
+{\em n\+\_\+} & Size of the identity matrix \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Identity matrix 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_a78c4051654cdf3091b7f3d238421933e}\index{Matrix@{Matrix}!insertBlock@{insertBlock}}
+\index{insertBlock@{insertBlock}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{insertBlock()}{insertBlock()}}
+{\footnotesize\ttfamily \label{class_matrix_a78c4051654cdf3091b7f3d238421933e} 
+void Matrix::\+insert\+Block (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{dst}{, }\item[{int}]{r0}{, }\item[{int}]{c0}{, }\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{src}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Insert a matrix block into another matrix. 
+
+Copies matrix {\ttfamily src} into matrix {\ttfamily dst} starting at position (r0, c0).
+
+
+\begin{DoxyParams}{Parameters}
+{\em dst} & Destination matrix \\
+\hline
+{\em r0} & Initial row index \\
+\hline
+{\em c0} & Initial column index \\
+\hline
+{\em src} & Source matrix to insert \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_matrix_a0e045174ca170c541c1468830b006d9a}\index{Matrix@{Matrix}!mul@{mul}}
+\index{mul@{mul}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{mul()}{mul()}}
+{\footnotesize\ttfamily \label{class_matrix_a0e045174ca170c541c1468830b006d9a} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+mul (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{A}{, }\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{B}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+\doxylink{class_matrix}{Matrix} multiplication. 
+
+Computes the product:\+
+
+\[C = A \cdot B
+\]
+
+Dimensions must satisfy:\+
+
+\[A_{r \times c} \cdot B_{c \times k}
+\]
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & Left matrix \\
+\hline
+{\em B} & Right matrix \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Resulting matrix 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_a91e0900aa60acb159bd8c455dfe07216}\index{Matrix@{Matrix}!operator()@{operator()}}
+\index{operator()@{operator()}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \label{class_matrix_a91e0900aa60acb159bd8c455dfe07216} 
+float \& Matrix::\+operator() (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{i}{, }\item[{size\+\_\+t}]{j}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Access matrix element (modifiable). 
+
+Provides write access to element (i,j).
+
+
+\begin{DoxyParams}{Parameters}
+{\em i} & Row index \\
+\hline
+{\em j} & Column index \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Reference to the matrix element 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_a326d19e4839130563f60799bdb5e2c41}\index{Matrix@{Matrix}!operator()@{operator()}}
+\index{operator()@{operator()}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily \label{class_matrix_a326d19e4839130563f60799bdb5e2c41} 
+float Matrix::\+operator() (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{i}{, }\item[{size\+\_\+t}]{j}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Access matrix element (read-\/only). 
+
+Provides read-\/only access to element (i,j).
+
+
+\begin{DoxyParams}{Parameters}
+{\em i} & Row index \\
+\hline
+{\em j} & Column index \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Value of the matrix element 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_a921f70a095b44932088a65743d5c1af9}\index{Matrix@{Matrix}!P\_i@{P\_i}}
+\index{P\_i@{P\_i}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{P\_i()}{P\_i()}}
+{\footnotesize\ttfamily \label{class_matrix_a921f70a095b44932088a65743d5c1af9} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+\+P\+\_\+i (\begin{DoxyParamCaption}\item[{int}]{i}{, }\item[{int}]{n1}{, }\item[{int}]{N\+\_\+}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Generate the selection matrix (P\+\_\+i). 
+
+This matrix is commonly used in \doxylink{class_m_p_c}{MPC} formulations to select specific prediction steps from a stacked vector.
+
+
+\begin{DoxyParams}{Parameters}
+{\em i} & Prediction step \\
+\hline
+{\em n1} & Output dimension \\
+\hline
+{\em N\+\_\+} & Prediction horizon \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Selection matrix 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_aaf829bff49fe2d6324c622350c532815}\index{Matrix@{Matrix}!resize@{resize}}
+\index{resize@{resize}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{resize()}{resize()}}
+{\footnotesize\ttfamily \label{class_matrix_aaf829bff49fe2d6324c622350c532815} 
+void Matrix::\+resize (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{r\+\_\+}{, }\item[{size\+\_\+t}]{c\+\_\+}{, }\item[{float}]{v}{ = {\ttfamily 0.0}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Resize the matrix and fill with a given value. 
+
+Existing data is discarded.
+
+
+\begin{DoxyParams}{Parameters}
+{\em r\+\_\+} & New number of rows \\
+\hline
+{\em c\+\_\+} & New number of columns \\
+\hline
+{\em v} & Value used to initialize all elements \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_matrix_a24776e0b2b3592498c2a5ea2699bb203}\index{Matrix@{Matrix}!smul@{smul}}
+\index{smul@{smul}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{smul()}{smul()}}
+{\footnotesize\ttfamily \label{class_matrix_a24776e0b2b3592498c2a5ea2699bb203} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+smul (\begin{DoxyParamCaption}\item[{float}]{s}{, }\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{A}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Scalar-\/matrix multiplication. 
+
+Computes:\+
+
+\[B = sA
+\]
+
+
+\begin{DoxyParams}{Parameters}
+{\em s} & Scalar value \\
+\hline
+{\em A} & Input matrix \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Scaled matrix 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_aa7351e0d77226aa2d2618287791996dc}\index{Matrix@{Matrix}!transpose@{transpose}}
+\index{transpose@{transpose}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily \label{class_matrix_aa7351e0d77226aa2d2618287791996dc} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+transpose (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{A}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Compute the transpose of a matrix. 
+
+The transpose swaps rows and columns:\+
+
+\[A^T_{ij} = A_{ji}
+\]
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & Input matrix \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Transposed matrix 
+\end{DoxyReturn}
+\Hypertarget{class_matrix_addb5b0434f297567e0ae13d5ee543a00}\index{Matrix@{Matrix}!zeros@{zeros}}
+\index{zeros@{zeros}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{zeros()}{zeros()}}
+{\footnotesize\ttfamily \label{class_matrix_addb5b0434f297567e0ae13d5ee543a00} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} Matrix::\+zeros (\begin{DoxyParamCaption}\item[{int}]{r}{, }\item[{int}]{c}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Create a matrix filled with zeros. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \doxylink{class_matrix_a88717be7359177961a0c33ca228e4fca}{r}} & Number of rows \\
+\hline
+{\em \doxylink{class_matrix_a3f75ba22d192bf1983308afb25030289}{c}} & Number of columns \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Zero matrix 
+\end{DoxyReturn}
+
+
+\label{doc-variable-members}
+\Hypertarget{class_matrix_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_matrix_a3f75ba22d192bf1983308afb25030289}\index{Matrix@{Matrix}!c@{c}}
+\index{c@{c}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{c}{c}}
+{\footnotesize\ttfamily \label{class_matrix_a3f75ba22d192bf1983308afb25030289} 
+size\+\_\+t Matrix::\+c}
+
+
+
+Number of columns of the matrix. 
+
+\Hypertarget{class_matrix_ac139daadc80460d2544dd8d1401a1ebb}\index{Matrix@{Matrix}!d@{d}}
+\index{d@{d}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{d}{d}}
+{\footnotesize\ttfamily \label{class_matrix_ac139daadc80460d2544dd8d1401a1ebb} 
+std::\+vector$<$float$>$ Matrix::\+d}
+
+
+
+\doxylink{class_matrix}{Matrix} data stored in row-\/major order. 
+
+Element (i,j) is stored at index:\+
+
+\[index = i \cdot c + j
+\] \Hypertarget{class_matrix_a88717be7359177961a0c33ca228e4fca}\index{Matrix@{Matrix}!r@{r}}
+\index{r@{r}!Matrix@{Matrix}}
+\doxysubsubsection{\texorpdfstring{r}{r}}
+{\footnotesize\ttfamily \label{class_matrix_a88717be7359177961a0c33ca228e4fca} 
+size\+\_\+t Matrix::\+r}
+
+
+
+Number of rows of the matrix. 
+
+
+
+The documentation for this class was generated from the following files:\+\begin{DoxyCompactItemize}
+\item 
+lib/\+math/\+\doxymbox{\hyperlink{_matrix_8h}{Matrix.\+h}}\item 
+lib/\+math/\+\doxymbox{\hyperlink{_matrix_8cpp}{Matrix.\+cpp}}\end{DoxyCompactItemize}

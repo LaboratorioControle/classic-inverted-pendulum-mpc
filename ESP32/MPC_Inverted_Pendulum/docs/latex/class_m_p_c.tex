@@ -1,0 +1,928 @@
+\doxysection{MPC Class Reference}
+\hypertarget{class_m_p_c}{}\label{class_m_p_c}\index{MPC@{MPC}}
+
+
+Class responsible for implementing the \doxylink{class_m_p_c}{MPC} controller.  
+
+
+
+
+{\ttfamily \+\#include $<$MPC.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\doxymbox{\hyperlink{class_m_p_c_a5e76f80fdd3135e67231b6c25ca8965f}{MPC}} (\doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}} form=\doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca21994d6177b29e1128b2d7f0f8342057}{MPCForm::\+\+CLASSIC}}, int \doxymbox{\hyperlink{class_m_p_c_a79949cd9b7a0c907f44444dd6d8ee749}{n\+WSR}}=30)
+\begin{DoxyCompactList}\small\item\em Constructor of the \doxylink{class_m_p_c}{MPC} class. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a327133823035378c6176cf2d0a02480e}{compute\+\_\+\+MPC\+\_\+\+Matrices}} ()
+\begin{DoxyCompactList}\small\item\em Calculates all the matrices of the \doxylink{class_m_p_c}{MPC} (classic mode). \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_ae74e88d3a9459bdb30569962085c2e36}{compute\+\_\+\+MPC\+\_\+\+Matrices}} (float \texorpdfstring{$\ast$}{*}pontos)
+\begin{DoxyCompactList}\small\item\em Calculates the matrices of the \doxylink{class_m_p_c}{MPC} using linear parameterization. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a8188350c5f6a02a0ecd0c19996e05376}{compute\+\_\+\+MPC\+\_\+\+Matrices}} (float \texorpdfstring{$\ast$}{*}lambda, float alpha, float tau)
+\begin{DoxyCompactList}\small\item\em Calculates the matrices of the \doxylink{class_m_p_c}{MPC} using exponential parameterization. \end{DoxyCompactList}\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{class_m_p_c_a9206209ffaf8cdafc7ddbb8a83860d42}{compute\+\_\+\+MPC\+\_\+\+Command}} (float ulast, float \texorpdfstring{$\ast$}{*}err)
+\begin{DoxyCompactList}\small\item\em Calculates the optimal control signal. \end{DoxyCompactList}\item 
+int \doxymbox{\hyperlink{class_m_p_c_a6d3f90827d047730e513a3dd9d197605}{get\+\_\+solver\+\_\+result\+\_\+code}} () const
+\begin{DoxyCompactList}\small\item\em Getter for the solver result code. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a761f5b8790045dbe6b424469e13dcdd0}{generate\+\_\+yref}} (const float \texorpdfstring{$\ast$}{*}spt, const float \texorpdfstring{$\ast$}{*}yref\+\_\+global, int idx\+\_\+atual, bool usar\+\_\+trajetoria)
+\begin{DoxyCompactList}\small\item\em Generates the reference trajectory over the prediction horizon. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_ac70c9ced11b1963d894c6fd24091c843}{A}}
+\begin{DoxyCompactList}\small\item\em State-\/space model matrices. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a134369c4c263aca7a09a76134b8f247c}{B}}
+\begin{DoxyCompactList}\small\item\em The matrix B represents the input matrix of the system:\+ \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a9966639417cfb50fe51ac64b89788178}{Cc}}
+\begin{DoxyCompactList}\small\item\em Matrices that define restricted outputs. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a8f5c87bcb85970d5d21c9db6d8aed65b}{Dc}}
+\begin{DoxyCompactList}\small\item\em Matrices that define restricted commands. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_afe13b383f22bbd32cbdc2ac17d286c08}{Cr}}
+\begin{DoxyCompactList}\small\item\em \doxylink{class_matrix}{Matrix} of regulated outputs. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a8d90f283b6d872930ba81582dfdb5427}{Qu}}
+\begin{DoxyCompactList}\small\item\em Penalizes control effort. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a242514b061efc54fbb9546c13c43ac66}{Qy}}
+\begin{DoxyCompactList}\small\item\em Penalizes tracking error. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a124960d4e7c4dafacaa231b0ce498f1e}{ycmax}}
+\begin{DoxyCompactList}\small\item\em Maximum limits of the restricted outputs. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a2f72f55526513d647225184a7b5c286a}{ycmin}}
+\begin{DoxyCompactList}\small\item\em Minimum limits of the restricted outputs. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_ae8fe3c5a858e375bb96ca9a51cfb2cb9}{deltamax}}
+\begin{DoxyCompactList}\small\item\em Maximum limits of the control signal variation. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a648fd168ccd0ebdfe7faded66c79a104}{deltamin}}
+\begin{DoxyCompactList}\small\item\em Minimum limits of the control signal variation. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a5ad0093b04e1107945f89c737a4437d2}{umax}}
+\begin{DoxyCompactList}\small\item\em Maximum limits of the control signal. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} \doxymbox{\hyperlink{class_m_p_c_a5e5b55507522d3c287f36b517c8c1a9c}{umin}}
+\begin{DoxyCompactList}\small\item\em Minimum limits of the control signal. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \doxymbox{\hyperlink{class_m_p_c_ac7537cae7409cfc350aa203916cb5a79}{matrix\+\_\+to\+\_\+realt}} (const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&M, qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}result)
+\begin{DoxyCompactList}\small\item\em Converts a \doxylink{class_matrix}{Matrix} object to a row-\/major vector of type real\+\_\+t. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_ac41b0e96d4107a8887aff1357aeed1f6}{compute\+\_\+\+Cost\+\_\+\+Matrices}} ()
+\begin{DoxyCompactList}\small\item\em Computes the \doxylink{class_m_p_c}{MPC} cost matrices H, F1, F2, and F3. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_abb58927052a1a247c05f1d13dc41ab60}{compute\+\_\+\+Constraints\+\_\+\+Matrices}} ()
+\begin{DoxyCompactList}\small\item\em Computes the constraint matrices G1, G2, and G3. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a0d63f82c64c606f4e68bc91b38d48376}{build\+\_\+cost\+\_\+vector}} (float \texorpdfstring{$\ast$}{*}err)
+\begin{DoxyCompactList}\small\item\em Builds the linear cost vector F. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_aefb1b5cdadfe36f58556782932de61b4}{build\+\_\+constraints}} (float \texorpdfstring{$\ast$}{*}err, float ulast)
+\begin{DoxyCompactList}\small\item\em Builds the constraint vector Bineq. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_ae293785a62fc49ff8c71eb640ce0be72}{compute\+\_\+util\+\_\+opt}} ()
+\begin{DoxyCompactList}\small\item\em Extracts the optimal control signal from the QP solution. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a682600ec01b3157e6107c242519c574e}{init\+\_\+solver\+\_\+qp}} (int nv\+\_\+decision, int nc\+\_\+constraints)
+\begin{DoxyCompactList}\small\item\em Initializes the QP solver parameters. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_a627710c39a23b2cf0128b59f581aeeaa}{solver\+\_\+qp}} ()
+\begin{DoxyCompactList}\small\item\em Initializes the QP solver parameters. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_adbb5338909c608d06a984f9c8fdd4ca6}{compute\+\_\+\+Bineq\+\_\+reduced}} (qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}Pi\+\_\+ref)
+\begin{DoxyCompactList}\small\item\em Computes the reduced constraint vector Bineq for parameterized \doxylink{class_m_p_c}{MPC}. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_add025105958f4454523e825aa4345099}{compute\+\_\+\+Aineq\+\_\+reduced}} (qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}Pi\+\_\+ref)
+\begin{DoxyCompactList}\small\item\em Computes the reduced constraint matrix Aineq for parameterized \doxylink{class_m_p_c}{MPC}. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_abd5298949672d44a967b52ed8fafa37d}{compute\+\_\+\+F\+\_\+reduced}} (qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}Pi\+\_\+ref)
+\begin{DoxyCompactList}\small\item\em Computes the reduced constraint matrix Aineq for parameterized \doxylink{class_m_p_c}{MPC}. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_acd12c25acfb48d373c621cec36143565}{compute\+\_\+\+H\+\_\+reduced}} (qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}Pi\+\_\+ref)
+\begin{DoxyCompactList}\small\item\em Computes the reduced cost vector for parameterized \doxylink{class_m_p_c}{MPC}. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_accbbdd9ea57c8a53c0115c25c2825c12}{compute\+\_\+\+Pi\+\_\+e}} (float \texorpdfstring{$\ast$}{*}lambda, float alpha, float tau)
+\begin{DoxyCompactList}\small\item\em Computes the exponential parametrization selection matrix. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_m_p_c_ae1099cb6417cc95f5d415639392ce8d0}{compute\+\_\+\+Pi\+\_\+r}} (float \texorpdfstring{$\ast$}{*}pontos)
+\begin{DoxyCompactList}\small\item\em Computes the linear (trivial) parametrization selection matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+qp\+OASES::\+\+QProblem \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{class_m_p_c_ae4defcd6a2dfaeeda51c16405f0807a5}{qp}} = nullptr
+\begin{DoxyCompactList}\small\item\em qp\+OASES optimizer pointer \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{class_m_p_c_a09adf0400f086702ed1481719151a37c}{qp\+\_\+initialized}} = false
+\begin{DoxyCompactList}\small\item\em Flag to save the initialization of the QP solver. \end{DoxyCompactList}\item 
+int \doxymbox{\hyperlink{class_m_p_c_ad742cf0474f46ec05b770352c104d188}{solver\+\_\+result\+\_\+code}}
+\begin{DoxyCompactList}\small\item\em Solver result Code. \end{DoxyCompactList}\item 
+int \doxymbox{\hyperlink{class_m_p_c_a79949cd9b7a0c907f44444dd6d8ee749}{n\+WSR}}
+\begin{DoxyCompactList}\small\item\em Quantity of iterations of the optimizer. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a4ffba07d01ecb91c69786d17842110ff}{cpu\+\_\+time}} \+[1]\+
+\begin{DoxyCompactList}\small\item\em CPU time allowed for the optimization process. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}} \doxymbox{\hyperlink{class_m_p_c_a76c1bdd61195e6bb23ad5a3a14d9795c}{form\+\_\+}}
+\begin{DoxyCompactList}\small\item\em Stores which was the chosen \doxylink{class_m_p_c}{MPC} option. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_af9bef6a1ea43e3be4255de591e8e3a19}{H}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\begin{DoxyCompactList}\small\item\em Cost function matrices (calculated offline). \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a95440b8a0bf6e47c016c8596a2a1e236}{F1}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}{n}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_abfd107de741fd94a6083783d9f368920}{F2}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}{ny}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_aab98c5985048ae1d5295783fc40fd5e0}{F3}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_afddd3aed2ee9b19c5bb6409ce953d13a}{Aineq}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\begin{DoxyCompactList}\small\item\em Constraint matrices (calculated offline). \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a6fe0bc6c5133c9ea1a434cb84e4d2087}{G1}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}{n}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ac3211e6ea72a4ac116f2a00a4981198c}{G2}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ab75d9dff9e6aecf89b59dddb930299c0}{G3}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ad39443e9493297d3bcb30005a7aa50b7}{yref}} \+[\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}{ny}}]\+
+\begin{DoxyCompactList}\small\item\em Vector of reference along the horizon. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a7ad0dfb0a0ef0b3eb3da40c566f28b07}{F}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\begin{DoxyCompactList}\small\item\em Vector of the cost function. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a695f7cf33586caf20cdbd11657f0b0f5}{Bineq}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}}]\+
+\begin{DoxyCompactList}\small\item\em Vector of constraints. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ab58523aeb4e648890994c5a0faf65eb4}{qp\+\_\+opt}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\begin{DoxyCompactList}\small\item\em Vector solution of the QP problem. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a57cd8fde5cf8d80a0a6b2b4ce5c594a1}{Pi\+\_\+r}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\begin{DoxyCompactList}\small\item\em Selection matrices for the trivial parametrized cases. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a962aba0237f8b05b9f9f8bf8ef3435c3}{Pi\+\_\+e}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}{nre}}]\+
+\begin{DoxyCompactList}\small\item\em Selection matrices for the exponencial parametrized cases. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ac86bf7bcefb7b06627d05c6bede43de3}{H\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\begin{DoxyCompactList}\small\item\em Matrices for trivial and exponential parameterization. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_aabfca35c87b5a24f444b241dd75abf0f}{Aineq\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}{n\+Ar}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a65b4276e9a9cf39433a8ccd0728d2c5e}{F\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a8f6c17fa209abcebf7dd2e2803b22d3e}{Bineq\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}{n\+Ar}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a31704e2b45ea8ac71fd30eae2365d450}{utildemax}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\begin{DoxyCompactList}\small\item\em Cost function matrices (calculated online). \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a5f75bbc29b0ff88b7877cc6249ddd05a}{utildemin}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a0e9a6448141ee21377668c42e85fe6b6}{lb\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_aefe9f2b096b4b536d4e56d364ec50bde}{ub\+\_\+p}} \+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+
+\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_a02a82b0639e06069058faaadfad8330f}{u\+\_\+}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+
+\begin{DoxyCompactList}\small\item\em Auxiliary matrices for storing the first command of the calculated command signal sequence and the sequence itself. \end{DoxyCompactList}\item 
+qp\+OASES::\+real\+\_\+t \doxymbox{\hyperlink{class_m_p_c_ae176190e156bd7a5ba36fc4253f7d85e}{u\+\_\+full}} \+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class responsible for implementing the \doxylink{class_m_p_c}{MPC} controller. 
+
+This class performs:\+
+\begin{DoxyItemize}
+\item Cost matrix calculation
+\item Constraint matrix calculation
+\item QP problem formulation
+\item Optimization problem resolution using qp\+OASES
+\item Optimal control signal calculation 
+\end{DoxyItemize}
+
+\label{doc-constructors}
+\Hypertarget{class_m_p_c_doc-constructors}
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_m_p_c_a5e76f80fdd3135e67231b6c25ca8965f}\index{MPC@{MPC}!MPC@{MPC}}
+\index{MPC@{MPC}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{MPC()}{MPC()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a5e76f80fdd3135e67231b6c25ca8965f} 
+MPC::\+\+MPC (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}}}]{form}{ = {\ttfamily \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca21994d6177b29e1128b2d7f0f8342057}{MPCForm::\+\+CLASSIC}}}, }\item[{int}]{n\+WSR}{ = {\ttfamily 30}}\end{DoxyParamCaption})}
+
+
+
+Constructor of the \doxylink{class_m_p_c}{MPC} class. 
+
+Initializes the \doxylink{class_m_p_c}{MPC} controller and the QP solver.
+
+
+\begin{DoxyParams}{Parameters}
+{\em form} & Type of \doxylink{class_m_p_c}{MPC} formulation \\
+\hline
+{\em \doxylink{class_m_p_c_a79949cd9b7a0c907f44444dd6d8ee749}{n\+WSR}} & Maximum number of iterations for the QP solver \\
+\hline
+\end{DoxyParams}
+
+
+\label{doc-func-members}
+\Hypertarget{class_m_p_c_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_m_p_c_aefb1b5cdadfe36f58556782932de61b4}\index{MPC@{MPC}!build\_constraints@{build\_constraints}}
+\index{build\_constraints@{build\_constraints}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{build\_constraints()}{build\_constraints()}}
+{\footnotesize\ttfamily \label{class_m_p_c_aefb1b5cdadfe36f58556782932de61b4} 
+void MPC::\+build\+\_\+constraints (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{err}{, }\item[{float}]{ulast}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Builds the constraint vector Bineq. 
+
+This function calculates the right-\/hand side of the inequality constraint vector based on the current system state and the previously applied control input.
+
+
+\begin{DoxyParams}{Parameters}
+{\em err} & Pointer to the system error vector. \\
+\hline
+{\em ulast} & Last control input applied to the system. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_a0d63f82c64c606f4e68bc91b38d48376}\index{MPC@{MPC}!build\_cost\_vector@{build\_cost\_vector}}
+\index{build\_cost\_vector@{build\_cost\_vector}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{build\_cost\_vector()}{build\_cost\_vector()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a0d63f82c64c606f4e68bc91b38d48376} 
+void MPC::\+build\+\_\+cost\+\_\+vector (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{err}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Builds the linear cost vector F. 
+
+This function computes the linear term of the quadratic programming cost function based on the current tracking error and reference trajectory.
+
+The vector F is updated online since it depends on the current system state and the tracking error.
+
+
+\begin{DoxyParams}{Parameters}
+{\em err} & Pointer to the error vector between reference and output. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_add025105958f4454523e825aa4345099}\index{MPC@{MPC}!compute\_Aineq\_reduced@{compute\_Aineq\_reduced}}
+\index{compute\_Aineq\_reduced@{compute\_Aineq\_reduced}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Aineq\_reduced()}{compute\_Aineq\_reduced()}}
+{\footnotesize\ttfamily \label{class_m_p_c_add025105958f4454523e825aa4345099} 
+void MPC::\+compute\+\_\+\+Aineq\+\_\+reduced (\begin{DoxyParamCaption}\item[{qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}}]{Pi\+\_\+ref}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the reduced constraint matrix Aineq for parameterized \doxylink{class_m_p_c}{MPC}. 
+
+This function applies the control parametrization transformation to the original constraint matrix Aineq.
+
+
+\begin{DoxyParams}{Parameters}
+{\em Pi\+\_\+ref} & Pointer to the selection matrix used in the control parametrization. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_adbb5338909c608d06a984f9c8fdd4ca6}\index{MPC@{MPC}!compute\_Bineq\_reduced@{compute\_Bineq\_reduced}}
+\index{compute\_Bineq\_reduced@{compute\_Bineq\_reduced}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Bineq\_reduced()}{compute\_Bineq\_reduced()}}
+{\footnotesize\ttfamily \label{class_m_p_c_adbb5338909c608d06a984f9c8fdd4ca6} 
+void MPC::\+compute\+\_\+\+Bineq\+\_\+reduced (\begin{DoxyParamCaption}\item[{qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}}]{Pi\+\_\+ref}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the reduced constraint vector Bineq for parameterized \doxylink{class_m_p_c}{MPC}. 
+
+When control parametrization is used, the original optimization variables are replaced by a reduced set of parameters. This function transforms the original constraint vector accordingly.
+
+
+\begin{DoxyParams}{Parameters}
+{\em Pi\+\_\+ref} & Pointer to the selection matrix used in the control parametrization. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_abb58927052a1a247c05f1d13dc41ab60}\index{MPC@{MPC}!compute\_Constraints\_Matrices@{compute\_Constraints\_Matrices}}
+\index{compute\_Constraints\_Matrices@{compute\_Constraints\_Matrices}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Constraints\_Matrices()}{compute\_Constraints\_Matrices()}}
+{\footnotesize\ttfamily \label{class_m_p_c_abb58927052a1a247c05f1d13dc41ab60} 
+void MPC::\+compute\+\_\+\+Constraints\+\_\+\+Matrices (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the constraint matrices G1, G2, and G3. 
+
+These matrices represent the linear inequality constraints imposed on the system outputs and control inputs along the prediction horizon.
+
+The constraints are written in the form:\+
+
+Aineq \texorpdfstring{$\ast$}{*} u \texorpdfstring{$<$}{<}= Bineq
+
+where the matrices G1, G2 and G3 are used to construct Bineq depending on the current system state. \Hypertarget{class_m_p_c_ac41b0e96d4107a8887aff1357aeed1f6}\index{MPC@{MPC}!compute\_Cost\_Matrices@{compute\_Cost\_Matrices}}
+\index{compute\_Cost\_Matrices@{compute\_Cost\_Matrices}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Cost\_Matrices()}{compute\_Cost\_Matrices()}}
+{\footnotesize\ttfamily \label{class_m_p_c_ac41b0e96d4107a8887aff1357aeed1f6} 
+void MPC::\+compute\+\_\+\+Cost\+\_\+\+Matrices (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the \doxylink{class_m_p_c}{MPC} cost matrices H, F1, F2, and F3. 
+
+These matrices define the quadratic cost function of the \doxylink{class_m_p_c}{MPC} problem and are computed offline since they depend only on the system model and weighting matrices.
+
+The quadratic cost function has the form:\+
+
+J = (1/\+2) u\texorpdfstring{$^\wedge$}{\string^}T H u + F\texorpdfstring{$^\wedge$}{\string^}T u
+
+where the vector F is composed of terms involving F1, F2 and F3. \Hypertarget{class_m_p_c_abd5298949672d44a967b52ed8fafa37d}\index{MPC@{MPC}!compute\_F\_reduced@{compute\_F\_reduced}}
+\index{compute\_F\_reduced@{compute\_F\_reduced}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_F\_reduced()}{compute\_F\_reduced()}}
+{\footnotesize\ttfamily \label{class_m_p_c_abd5298949672d44a967b52ed8fafa37d} 
+void MPC::\+compute\+\_\+\+F\+\_\+reduced (\begin{DoxyParamCaption}\item[{qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}}]{Pi\+\_\+ref}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the reduced constraint matrix Aineq for parameterized \doxylink{class_m_p_c}{MPC}. 
+
+This function applies the control parametrization transformation to the original constraint matrix Aineq.
+
+
+\begin{DoxyParams}{Parameters}
+{\em Pi\+\_\+ref} & Pointer to the selection matrix used in the control parametrization. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_acd12c25acfb48d373c621cec36143565}\index{MPC@{MPC}!compute\_H\_reduced@{compute\_H\_reduced}}
+\index{compute\_H\_reduced@{compute\_H\_reduced}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_H\_reduced()}{compute\_H\_reduced()}}
+{\footnotesize\ttfamily \label{class_m_p_c_acd12c25acfb48d373c621cec36143565} 
+void MPC::\+compute\+\_\+\+H\+\_\+reduced (\begin{DoxyParamCaption}\item[{qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}}]{Pi\+\_\+ref}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the reduced cost vector for parameterized \doxylink{class_m_p_c}{MPC}. 
+
+The cost vector F is transformed according to the chosen control parametrization to reduce the optimization problem dimension.
+
+
+\begin{DoxyParams}{Parameters}
+{\em Pi\+\_\+ref} & Pointer to the selection matrix used in the control parametrization. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_a9206209ffaf8cdafc7ddbb8a83860d42}\index{MPC@{MPC}!compute\_MPC\_Command@{compute\_MPC\_Command}}
+\index{compute\_MPC\_Command@{compute\_MPC\_Command}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_MPC\_Command()}{compute\_MPC\_Command()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a9206209ffaf8cdafc7ddbb8a83860d42} 
+float \texorpdfstring{$\ast$}{*} MPC::\+compute\+\_\+\+MPC\+\_\+\+Command (\begin{DoxyParamCaption}\item[{float}]{ulast}{, }\item[{float \texorpdfstring{$\ast$}{*}}]{err}{}\end{DoxyParamCaption})}
+
+
+
+Calculates the optimal control signal. 
+
+Solves the \doxylink{class_m_p_c}{MPC} QP problem and returns the first command of the calculated optimal sequence.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ulast} & last control signal value applied \\
+\hline
+{\em err} & vector of system errors \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+pointer to the calculated control signal vector 
+\end{DoxyReturn}
+\Hypertarget{class_m_p_c_a327133823035378c6176cf2d0a02480e}\index{MPC@{MPC}!compute\_MPC\_Matrices@{compute\_MPC\_Matrices}}
+\index{compute\_MPC\_Matrices@{compute\_MPC\_Matrices}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_MPC\_Matrices()}{compute\_MPC\_Matrices()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily \label{class_m_p_c_a327133823035378c6176cf2d0a02480e} 
+void MPC::\+compute\+\_\+\+MPC\+\_\+\+Matrices (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Calculates all the matrices of the \doxylink{class_m_p_c}{MPC} (classic mode). 
+
+\Hypertarget{class_m_p_c_a8188350c5f6a02a0ecd0c19996e05376}\index{MPC@{MPC}!compute\_MPC\_Matrices@{compute\_MPC\_Matrices}}
+\index{compute\_MPC\_Matrices@{compute\_MPC\_Matrices}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_MPC\_Matrices()}{compute\_MPC\_Matrices()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily \label{class_m_p_c_a8188350c5f6a02a0ecd0c19996e05376} 
+void MPC::\+compute\+\_\+\+MPC\+\_\+\+Matrices (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{lambda}{, }\item[{float}]{alpha}{, }\item[{float}]{tau}{}\end{DoxyParamCaption})}
+
+
+
+Calculates the matrices of the \doxylink{class_m_p_c}{MPC} using exponential parameterization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em lambda} & Vector of exponents \\
+\hline
+{\em alpha} & damping factor \\
+\hline
+{\em tau} & time constant \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_ae74e88d3a9459bdb30569962085c2e36}\index{MPC@{MPC}!compute\_MPC\_Matrices@{compute\_MPC\_Matrices}}
+\index{compute\_MPC\_Matrices@{compute\_MPC\_Matrices}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_MPC\_Matrices()}{compute\_MPC\_Matrices()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae74e88d3a9459bdb30569962085c2e36} 
+void MPC::\+compute\+\_\+\+MPC\+\_\+\+Matrices (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{pontos}{}\end{DoxyParamCaption})}
+
+
+
+Calculates the matrices of the \doxylink{class_m_p_c}{MPC} using linear parameterization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pontos} & Points of control parameterization \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_accbbdd9ea57c8a53c0115c25c2825c12}\index{MPC@{MPC}!compute\_Pi\_e@{compute\_Pi\_e}}
+\index{compute\_Pi\_e@{compute\_Pi\_e}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Pi\_e()}{compute\_Pi\_e()}}
+{\footnotesize\ttfamily \label{class_m_p_c_accbbdd9ea57c8a53c0115c25c2825c12} 
+void MPC::\+compute\+\_\+\+Pi\+\_\+e (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{lambda}{, }\item[{float}]{alpha}{, }\item[{float}]{tau}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the exponential parametrization selection matrix. 
+
+This function constructs the matrix Pi\+\_\+e used to represent the control sequence using exponential basis functions.
+
+
+\begin{DoxyParams}{Parameters}
+{\em lambda} & Vector of exponential parameters. \\
+\hline
+{\em alpha} & Scaling parameter. \\
+\hline
+{\em tau} & Time constant parameter. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_ae1099cb6417cc95f5d415639392ce8d0}\index{MPC@{MPC}!compute\_Pi\_r@{compute\_Pi\_r}}
+\index{compute\_Pi\_r@{compute\_Pi\_r}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_Pi\_r()}{compute\_Pi\_r()}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae1099cb6417cc95f5d415639392ce8d0} 
+void MPC::\+compute\+\_\+\+Pi\+\_\+r (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{pontos}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes the linear (trivial) parametrization selection matrix. 
+
+This function builds the matrix Pi\+\_\+r that maps the reduced parametrization points to the full control sequence over the prediction horizon.
+
+
+\begin{DoxyParams}{Parameters}
+{\em pontos} & Vector containing the parametrization points. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_ae293785a62fc49ff8c71eb640ce0be72}\index{MPC@{MPC}!compute\_util\_opt@{compute\_util\_opt}}
+\index{compute\_util\_opt@{compute\_util\_opt}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{compute\_util\_opt()}{compute\_util\_opt()}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae293785a62fc49ff8c71eb640ce0be72} 
+void MPC::\+compute\+\_\+util\+\_\+opt (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Extracts the optimal control signal from the QP solution. 
+
+After the quadratic program is solved, the optimal sequence of control increments is stored in qp\+\_\+opt. This function computes the actual control signal to be applied and stores the first control action in the vector u\+\_\+. \Hypertarget{class_m_p_c_a761f5b8790045dbe6b424469e13dcdd0}\index{MPC@{MPC}!generate\_yref@{generate\_yref}}
+\index{generate\_yref@{generate\_yref}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{generate\_yref()}{generate\_yref()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a761f5b8790045dbe6b424469e13dcdd0} 
+void MPC::\+generate\+\_\+yref (\begin{DoxyParamCaption}\item[{const float \texorpdfstring{$\ast$}{*}}]{spt}{, }\item[{const float \texorpdfstring{$\ast$}{*}}]{yref\+\_\+global}{, }\item[{int}]{idx\+\_\+atual}{, }\item[{bool}]{usar\+\_\+trajetoria}{}\end{DoxyParamCaption})}
+
+
+
+Generates the reference trajectory over the prediction horizon. 
+
+This function builds the reference vector used by the \doxylink{class_m_p_c}{MPC} controller along the prediction horizon. The reference trajectory is constructed from the setpoint vector provided by the user and stored in the internal vector yref.
+
+
+\begin{DoxyParams}{Parameters}
+{\em spt} & Pointer to the setpoint vector. \\
+\hline
+{\em yref\+\_\+global} & Pointer to the global reference trajectory. \\
+\hline
+{\em idx\+\_\+atual} & Current index in the global reference trajectory. \\
+\hline
+{\em usar\+\_\+trajetoria} & Flag indicating whether to use the global trajectory. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_a6d3f90827d047730e513a3dd9d197605}\index{MPC@{MPC}!get\_solver\_result\_code@{get\_solver\_result\_code}}
+\index{get\_solver\_result\_code@{get\_solver\_result\_code}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{get\_solver\_result\_code()}{get\_solver\_result\_code()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a6d3f90827d047730e513a3dd9d197605} 
+int MPC::\+get\+\_\+solver\+\_\+result\+\_\+code (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Getter for the solver result code. 
+
+This function allows external access to the result code of the QP solver, which can be used for debugging and error handling.
+
+\begin{DoxyReturn}{Returns}
+Integer representing the solver result code 
+\end{DoxyReturn}
+\Hypertarget{class_m_p_c_a682600ec01b3157e6107c242519c574e}\index{MPC@{MPC}!init\_solver\_qp@{init\_solver\_qp}}
+\index{init\_solver\_qp@{init\_solver\_qp}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{init\_solver\_qp()}{init\_solver\_qp()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a682600ec01b3157e6107c242519c574e} 
+void MPC::\+init\+\_\+solver\+\_\+qp (\begin{DoxyParamCaption}\item[{int}]{nv\+\_\+decision}{, }\item[{int}]{nc\+\_\+constraints}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Initializes the QP solver parameters. 
+
+This function allocates and configures the qp\+OASES solver instance according to the size of the quadratic programming problem.
+
+
+\begin{DoxyParams}{Parameters}
+{\em nv\+\_\+decision} & Number of decision variables in the QP problem. \\
+\hline
+{\em nc\+\_\+constraints} & Number of constraints in the QP problem. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_ac7537cae7409cfc350aa203916cb5a79}\index{MPC@{MPC}!matrix\_to\_realt@{matrix\_to\_realt}}
+\index{matrix\_to\_realt@{matrix\_to\_realt}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{matrix\_to\_realt()}{matrix\_to\_realt()}}
+{\footnotesize\ttfamily \label{class_m_p_c_ac7537cae7409cfc350aa203916cb5a79} 
+void MPC::\+matrix\+\_\+to\+\_\+realt (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{class_matrix}{Matrix}} \&}]{M}{, }\item[{qp\+OASES::\+real\+\_\+t \texorpdfstring{$\ast$}{*}}]{result}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Converts a \doxylink{class_matrix}{Matrix} object to a row-\/major vector of type real\+\_\+t. 
+
+The qp\+OASES solver requires matrices to be provided as contiguous row-\/major arrays. This function converts the custom \doxylink{class_matrix}{Matrix} structure used in the library into a row-\/major vector compatible with qp\+OASES.
+
+
+\begin{DoxyParams}{Parameters}
+{\em M} & \doxylink{class_matrix}{Matrix} to be converted. \\
+\hline
+{\em result} & Pointer to the output vector where the matrix elements will be stored in row-\/major format. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_m_p_c_a627710c39a23b2cf0128b59f581aeeaa}\index{MPC@{MPC}!solver\_qp@{solver\_qp}}
+\index{solver\_qp@{solver\_qp}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{solver\_qp()}{solver\_qp()}}
+{\footnotesize\ttfamily \label{class_m_p_c_a627710c39a23b2cf0128b59f581aeeaa} 
+void MPC::\+solver\+\_\+qp (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Initializes the QP solver parameters. 
+
+This function allocates and configures the qp\+OASES solver instance according to the size of the quadratic programming problem.
+
+
+\begin{DoxyParams}{Parameters}
+{\em size\+\_\+qp} & Number of optimization variables in the QP problem. \\
+\hline
+\end{DoxyParams}
+
+
+\label{doc-variable-members}
+\Hypertarget{class_m_p_c_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_m_p_c_ac70c9ced11b1963d894c6fd24091c843}\index{MPC@{MPC}!A@{A}}
+\index{A@{A}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{A}{A}}
+{\footnotesize\ttfamily \label{class_m_p_c_ac70c9ced11b1963d894c6fd24091c843} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+A}
+
+
+
+State-\/space model matrices. 
+
+The matrix A represents the system dynamics:\+
+
+x(k+1) = A x(k) + B u(k) \Hypertarget{class_m_p_c_afddd3aed2ee9b19c5bb6409ce953d13a}\index{MPC@{MPC}!Aineq@{Aineq}}
+\index{Aineq@{Aineq}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Aineq}{Aineq}}
+{\footnotesize\ttfamily \label{class_m_p_c_afddd3aed2ee9b19c5bb6409ce953d13a} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Aineq\+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Constraint matrices (calculated offline). 
+
+\Hypertarget{class_m_p_c_aabfca35c87b5a24f444b241dd75abf0f}\index{MPC@{MPC}!Aineq\_p@{Aineq\_p}}
+\index{Aineq\_p@{Aineq\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Aineq\_p}{Aineq\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_aabfca35c87b5a24f444b241dd75abf0f} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Aineq\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}{n\+Ar}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a134369c4c263aca7a09a76134b8f247c}\index{MPC@{MPC}!B@{B}}
+\index{B@{B}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{B}{B}}
+{\footnotesize\ttfamily \label{class_m_p_c_a134369c4c263aca7a09a76134b8f247c} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+B}
+
+
+
+The matrix B represents the input matrix of the system:\+ 
+
+x(k+1) = A x(k) + B u(k) \Hypertarget{class_m_p_c_a695f7cf33586caf20cdbd11657f0b0f5}\index{MPC@{MPC}!Bineq@{Bineq}}
+\index{Bineq@{Bineq}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Bineq}{Bineq}}
+{\footnotesize\ttfamily \label{class_m_p_c_a695f7cf33586caf20cdbd11657f0b0f5} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Bineq\+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Vector of constraints. 
+
+\Hypertarget{class_m_p_c_a8f6c17fa209abcebf7dd2e2803b22d3e}\index{MPC@{MPC}!Bineq\_p@{Bineq\_p}}
+\index{Bineq\_p@{Bineq\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Bineq\_p}{Bineq\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_a8f6c17fa209abcebf7dd2e2803b22d3e} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Bineq\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}{n\+Ar}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a9966639417cfb50fe51ac64b89788178}\index{MPC@{MPC}!Cc@{Cc}}
+\index{Cc@{Cc}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Cc}{Cc}}
+{\footnotesize\ttfamily \label{class_m_p_c_a9966639417cfb50fe51ac64b89788178} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+\+Cc}
+
+
+
+Matrices that define restricted outputs. 
+
+\Hypertarget{class_m_p_c_a4ffba07d01ecb91c69786d17842110ff}\index{MPC@{MPC}!cpu\_time@{cpu\_time}}
+\index{cpu\_time@{cpu\_time}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{cpu\_time}{cpu\_time}}
+{\footnotesize\ttfamily \label{class_m_p_c_a4ffba07d01ecb91c69786d17842110ff} 
+qp\+OASES::\+real\+\_\+t MPC::\+cpu\+\_\+time\+[1]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+CPU time allowed for the optimization process. 
+
+\Hypertarget{class_m_p_c_afe13b383f22bbd32cbdc2ac17d286c08}\index{MPC@{MPC}!Cr@{Cr}}
+\index{Cr@{Cr}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Cr}{Cr}}
+{\footnotesize\ttfamily \label{class_m_p_c_afe13b383f22bbd32cbdc2ac17d286c08} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+\+Cr}
+
+
+
+\doxylink{class_matrix}{Matrix} of regulated outputs. 
+
+\Hypertarget{class_m_p_c_a8f5c87bcb85970d5d21c9db6d8aed65b}\index{MPC@{MPC}!Dc@{Dc}}
+\index{Dc@{Dc}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Dc}{Dc}}
+{\footnotesize\ttfamily \label{class_m_p_c_a8f5c87bcb85970d5d21c9db6d8aed65b} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+\+Dc}
+
+
+
+Matrices that define restricted commands. 
+
+\Hypertarget{class_m_p_c_ae8fe3c5a858e375bb96ca9a51cfb2cb9}\index{MPC@{MPC}!deltamax@{deltamax}}
+\index{deltamax@{deltamax}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{deltamax}{deltamax}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae8fe3c5a858e375bb96ca9a51cfb2cb9} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+deltamax}
+
+
+
+Maximum limits of the control signal variation. 
+
+\Hypertarget{class_m_p_c_a648fd168ccd0ebdfe7faded66c79a104}\index{MPC@{MPC}!deltamin@{deltamin}}
+\index{deltamin@{deltamin}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{deltamin}{deltamin}}
+{\footnotesize\ttfamily \label{class_m_p_c_a648fd168ccd0ebdfe7faded66c79a104} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+deltamin}
+
+
+
+Minimum limits of the control signal variation. 
+
+\Hypertarget{class_m_p_c_a7ad0dfb0a0ef0b3eb3da40c566f28b07}\index{MPC@{MPC}!F@{F}}
+\index{F@{F}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{F}{F}}
+{\footnotesize\ttfamily \label{class_m_p_c_a7ad0dfb0a0ef0b3eb3da40c566f28b07} 
+qp\+OASES::\+real\+\_\+t MPC::\+F\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Vector of the cost function. 
+
+\Hypertarget{class_m_p_c_a95440b8a0bf6e47c016c8596a2a1e236}\index{MPC@{MPC}!F1@{F1}}
+\index{F1@{F1}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{F1}{F1}}
+{\footnotesize\ttfamily \label{class_m_p_c_a95440b8a0bf6e47c016c8596a2a1e236} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+F1\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}{n}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_abfd107de741fd94a6083783d9f368920}\index{MPC@{MPC}!F2@{F2}}
+\index{F2@{F2}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{F2}{F2}}
+{\footnotesize\ttfamily \label{class_m_p_c_abfd107de741fd94a6083783d9f368920} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+F2\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}{ny}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_aab98c5985048ae1d5295783fc40fd5e0}\index{MPC@{MPC}!F3@{F3}}
+\index{F3@{F3}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{F3}{F3}}
+{\footnotesize\ttfamily \label{class_m_p_c_aab98c5985048ae1d5295783fc40fd5e0} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+F3\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a65b4276e9a9cf39433a8ccd0728d2c5e}\index{MPC@{MPC}!F\_p@{F\_p}}
+\index{F\_p@{F\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{F\_p}{F\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_a65b4276e9a9cf39433a8ccd0728d2c5e} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+F\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a76c1bdd61195e6bb23ad5a3a14d9795c}\index{MPC@{MPC}!form\_@{form\_}}
+\index{form\_@{form\_}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{form\_}{form\_}}
+{\footnotesize\ttfamily \label{class_m_p_c_a76c1bdd61195e6bb23ad5a3a14d9795c} 
+\doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}} MPC::\+form\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Stores which was the chosen \doxylink{class_m_p_c}{MPC} option. 
+
+\Hypertarget{class_m_p_c_a6fe0bc6c5133c9ea1a434cb84e4d2087}\index{MPC@{MPC}!G1@{G1}}
+\index{G1@{G1}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{G1}{G1}}
+{\footnotesize\ttfamily \label{class_m_p_c_a6fe0bc6c5133c9ea1a434cb84e4d2087} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+G1\+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}{n}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_ac3211e6ea72a4ac116f2a00a4981198c}\index{MPC@{MPC}!G2@{G2}}
+\index{G2@{G2}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{G2}{G2}}
+{\footnotesize\ttfamily \label{class_m_p_c_ac3211e6ea72a4ac116f2a00a4981198c} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+G2\+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_ab75d9dff9e6aecf89b59dddb930299c0}\index{MPC@{MPC}!G3@{G3}}
+\index{G3@{G3}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{G3}{G3}}
+{\footnotesize\ttfamily \label{class_m_p_c_ab75d9dff9e6aecf89b59dddb930299c0} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+G3\+[\doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_af9bef6a1ea43e3be4255de591e8e3a19}\index{MPC@{MPC}!H@{H}}
+\index{H@{H}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{H}{H}}
+{\footnotesize\ttfamily \label{class_m_p_c_af9bef6a1ea43e3be4255de591e8e3a19} 
+qp\+OASES::\+real\+\_\+t MPC::\+H\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Cost function matrices (calculated offline). 
+
+\Hypertarget{class_m_p_c_ac86bf7bcefb7b06627d05c6bede43de3}\index{MPC@{MPC}!H\_p@{H\_p}}
+\index{H\_p@{H\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{H\_p}{H\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_ac86bf7bcefb7b06627d05c6bede43de3} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+H\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Matrices for trivial and exponential parameterization. 
+
+\Hypertarget{class_m_p_c_a0e9a6448141ee21377668c42e85fe6b6}\index{MPC@{MPC}!lb\_p@{lb\_p}}
+\index{lb\_p@{lb\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{lb\_p}{lb\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_a0e9a6448141ee21377668c42e85fe6b6} 
+qp\+OASES::\+real\+\_\+t MPC::\+lb\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a79949cd9b7a0c907f44444dd6d8ee749}\index{MPC@{MPC}!nWSR@{nWSR}}
+\index{nWSR@{nWSR}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{nWSR}{nWSR}}
+{\footnotesize\ttfamily \label{class_m_p_c_a79949cd9b7a0c907f44444dd6d8ee749} 
+int MPC::\+n\+WSR\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Quantity of iterations of the optimizer. 
+
+\Hypertarget{class_m_p_c_a962aba0237f8b05b9f9f8bf8ef3435c3}\index{MPC@{MPC}!Pi\_e@{Pi\_e}}
+\index{Pi\_e@{Pi\_e}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Pi\_e}{Pi\_e}}
+{\footnotesize\ttfamily \label{class_m_p_c_a962aba0237f8b05b9f9f8bf8ef3435c3} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Pi\+\_\+e\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}{nre}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Selection matrices for the exponencial parametrized cases. 
+
+\Hypertarget{class_m_p_c_a57cd8fde5cf8d80a0a6b2b4ce5c594a1}\index{MPC@{MPC}!Pi\_r@{Pi\_r}}
+\index{Pi\_r@{Pi\_r}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Pi\_r}{Pi\_r}}
+{\footnotesize\ttfamily \label{class_m_p_c_a57cd8fde5cf8d80a0a6b2b4ce5c594a1} 
+qp\+OASES::\+real\+\_\+t MPC::\+\+Pi\+\_\+r\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Selection matrices for the trivial parametrized cases. 
+
+\Hypertarget{class_m_p_c_ae4defcd6a2dfaeeda51c16405f0807a5}\index{MPC@{MPC}!qp@{qp}}
+\index{qp@{qp}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{qp}{qp}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae4defcd6a2dfaeeda51c16405f0807a5} 
+qp\+OASES::\+\+QProblem\texorpdfstring{$\ast$}{*} MPC::\+qp = nullptr\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+qp\+OASES optimizer pointer 
+
+\Hypertarget{class_m_p_c_a09adf0400f086702ed1481719151a37c}\index{MPC@{MPC}!qp\_initialized@{qp\_initialized}}
+\index{qp\_initialized@{qp\_initialized}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{qp\_initialized}{qp\_initialized}}
+{\footnotesize\ttfamily \label{class_m_p_c_a09adf0400f086702ed1481719151a37c} 
+bool MPC::\+qp\+\_\+initialized = false\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Flag to save the initialization of the QP solver. 
+
+\Hypertarget{class_m_p_c_ab58523aeb4e648890994c5a0faf65eb4}\index{MPC@{MPC}!qp\_opt@{qp\_opt}}
+\index{qp\_opt@{qp\_opt}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{qp\_opt}{qp\_opt}}
+{\footnotesize\ttfamily \label{class_m_p_c_ab58523aeb4e648890994c5a0faf65eb4} 
+qp\+OASES::\+real\+\_\+t MPC::\+qp\+\_\+opt\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Vector solution of the QP problem. 
+
+\Hypertarget{class_m_p_c_a8d90f283b6d872930ba81582dfdb5427}\index{MPC@{MPC}!Qu@{Qu}}
+\index{Qu@{Qu}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Qu}{Qu}}
+{\footnotesize\ttfamily \label{class_m_p_c_a8d90f283b6d872930ba81582dfdb5427} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+\+Qu}
+
+
+
+Penalizes control effort. 
+
+\Hypertarget{class_m_p_c_a242514b061efc54fbb9546c13c43ac66}\index{MPC@{MPC}!Qy@{Qy}}
+\index{Qy@{Qy}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{Qy}{Qy}}
+{\footnotesize\ttfamily \label{class_m_p_c_a242514b061efc54fbb9546c13c43ac66} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+\+Qy}
+
+
+
+Penalizes tracking error. 
+
+\Hypertarget{class_m_p_c_ad742cf0474f46ec05b770352c104d188}\index{MPC@{MPC}!solver\_result\_code@{solver\_result\_code}}
+\index{solver\_result\_code@{solver\_result\_code}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{solver\_result\_code}{solver\_result\_code}}
+{\footnotesize\ttfamily \label{class_m_p_c_ad742cf0474f46ec05b770352c104d188} 
+int MPC::\+solver\+\_\+result\+\_\+code\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Solver result Code. 
+
+\Hypertarget{class_m_p_c_a02a82b0639e06069058faaadfad8330f}\index{MPC@{MPC}!u\_@{u\_}}
+\index{u\_@{u\_}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{u\_}{u\_}}
+{\footnotesize\ttfamily \label{class_m_p_c_a02a82b0639e06069058faaadfad8330f} 
+qp\+OASES::\+real\+\_\+t MPC::\+u\+\_\+\+[\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Auxiliary matrices for storing the first command of the calculated command signal sequence and the sequence itself. 
+
+\Hypertarget{class_m_p_c_ae176190e156bd7a5ba36fc4253f7d85e}\index{MPC@{MPC}!u\_full@{u\_full}}
+\index{u\_full@{u\_full}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{u\_full}{u\_full}}
+{\footnotesize\ttfamily \label{class_m_p_c_ae176190e156bd7a5ba36fc4253f7d85e} 
+qp\+OASES::\+real\+\_\+t MPC::\+u\+\_\+full\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_aefe9f2b096b4b536d4e56d364ec50bde}\index{MPC@{MPC}!ub\_p@{ub\_p}}
+\index{ub\_p@{ub\_p}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{ub\_p}{ub\_p}}
+{\footnotesize\ttfamily \label{class_m_p_c_aefe9f2b096b4b536d4e56d364ec50bde} 
+qp\+OASES::\+real\+\_\+t MPC::\+ub\+\_\+p\+[\doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a5ad0093b04e1107945f89c737a4437d2}\index{MPC@{MPC}!umax@{umax}}
+\index{umax@{umax}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{umax}{umax}}
+{\footnotesize\ttfamily \label{class_m_p_c_a5ad0093b04e1107945f89c737a4437d2} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+umax}
+
+
+
+Maximum limits of the control signal. 
+
+\Hypertarget{class_m_p_c_a5e5b55507522d3c287f36b517c8c1a9c}\index{MPC@{MPC}!umin@{umin}}
+\index{umin@{umin}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{umin}{umin}}
+{\footnotesize\ttfamily \label{class_m_p_c_a5e5b55507522d3c287f36b517c8c1a9c} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+umin}
+
+
+
+Minimum limits of the control signal. 
+
+\Hypertarget{class_m_p_c_a31704e2b45ea8ac71fd30eae2365d450}\index{MPC@{MPC}!utildemax@{utildemax}}
+\index{utildemax@{utildemax}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{utildemax}{utildemax}}
+{\footnotesize\ttfamily \label{class_m_p_c_a31704e2b45ea8ac71fd30eae2365d450} 
+qp\+OASES::\+real\+\_\+t MPC::\+utildemax\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Cost function matrices (calculated online). 
+
+\Hypertarget{class_m_p_c_a5f75bbc29b0ff88b7877cc6249ddd05a}\index{MPC@{MPC}!utildemin@{utildemin}}
+\index{utildemin@{utildemin}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{utildemin}{utildemin}}
+{\footnotesize\ttfamily \label{class_m_p_c_a5f75bbc29b0ff88b7877cc6249ddd05a} 
+qp\+OASES::\+real\+\_\+t MPC::\+utildemin\+[\doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_m_p_c_a124960d4e7c4dafacaa231b0ce498f1e}\index{MPC@{MPC}!ycmax@{ycmax}}
+\index{ycmax@{ycmax}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{ycmax}{ycmax}}
+{\footnotesize\ttfamily \label{class_m_p_c_a124960d4e7c4dafacaa231b0ce498f1e} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+ycmax}
+
+
+
+Maximum limits of the restricted outputs. 
+
+\Hypertarget{class_m_p_c_a2f72f55526513d647225184a7b5c286a}\index{MPC@{MPC}!ycmin@{ycmin}}
+\index{ycmin@{ycmin}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{ycmin}{ycmin}}
+{\footnotesize\ttfamily \label{class_m_p_c_a2f72f55526513d647225184a7b5c286a} 
+\doxymbox{\hyperlink{class_matrix}{Matrix}} MPC::\+ycmin}
+
+
+
+Minimum limits of the restricted outputs. 
+
+\Hypertarget{class_m_p_c_ad39443e9493297d3bcb30005a7aa50b7}\index{MPC@{MPC}!yref@{yref}}
+\index{yref@{yref}!MPC@{MPC}}
+\doxysubsubsection{\texorpdfstring{yref}{yref}}
+{\footnotesize\ttfamily \label{class_m_p_c_ad39443e9493297d3bcb30005a7aa50b7} 
+qp\+OASES::\+real\+\_\+t MPC::\+yref\+[\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}} \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}{ny}}]\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Vector of reference along the horizon. 
+
+
+
+The documentation for this class was generated from the following files:\+\begin{DoxyCompactItemize}
+\item 
+lib/\+\+MPC/\+\doxymbox{\hyperlink{_m_p_c_8h}{MPC.\+h}}\item 
+lib/\+\+MPC/\+\doxymbox{\hyperlink{_m_p_c_8cpp}{MPC.\+cpp}}\end{DoxyCompactItemize}

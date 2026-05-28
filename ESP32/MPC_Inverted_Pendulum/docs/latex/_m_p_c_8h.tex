@@ -1,0 +1,196 @@
+\doxysection{lib/\+\+MPC/\+\+MPC.h File Reference}
+\hypertarget{_m_p_c_8h}{}\label{_m_p_c_8h}\index{lib/MPC/MPC.h@{lib/MPC/MPC.h}}
+
+
+Implementation of a Model Predictive Control (\doxylink{class_m_p_c}{MPC}) controller based on Quadratic Programming using the qp\+OASES solver.  
+
+
+{\ttfamily \+\#include $<$qp\+OASES.\+hpp$>$}\newline
+{\ttfamily \+\#include $<$Matrix.\+h$>$}\newline
+{\ttfamily \+\#include $<$Message\+Handling.\+hpp$>$}\newline
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \doxymbox{\hyperlink{class_m_p_c}{MPC}}
+\begin{DoxyCompactList}\small\item\em Class responsible for implementing the \doxylink{class_m_p_c}{MPC} controller. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}~33
+\begin{DoxyCompactList}\small\item\em \doxylink{class_m_p_c}{MPC} prediction horizon. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}{n}}~4
+\begin{DoxyCompactList}\small\item\em Number of states in the system. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}{nc}}~1
+\begin{DoxyCompactList}\small\item\em Number of restricted exits. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}{ny}}~2
+\begin{DoxyCompactList}\small\item\em Number of regulated outputs. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}~1
+\begin{DoxyCompactList}\small\item\em Number of inputs (control signals). \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}{nre}}~3
+\begin{DoxyCompactList}\small\item\em Number of parameters for exponential and trivial parameterization. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}{np}}~(\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}{nre}})
+\begin{DoxyCompactList}\small\item\em Total number of decision variables in the parameterized system. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}{nU}}~(\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})
+\begin{DoxyCompactList}\small\item\em Total number of decision variables. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}{nA}}~(2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}{nc}} + 2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})
+\begin{DoxyCompactList}\small\item\em Total number of constraints in the original problem. \end{DoxyCompactList}\item 
+\+\#define \doxymbox{\hyperlink{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}{n\+Ar}}~(2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}{nc}} + 4\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})
+\begin{DoxyCompactList}\small\item\em Total number of constraints in the parameterized problem. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}} \{ \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca21994d6177b29e1128b2d7f0f8342057}{CLASSIC}}
+, \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebcaaac544aacc3615aada24897a215f5046}{LINEAR}}
+, \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca4344a80408fcfc22bac257e45ba07e81}{EXPONENCIAL}}
+ \}
+\begin{DoxyCompactList}\small\item\em Types of formulations available for the \doxylink{class_m_p_c}{MPC}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Implementation of a Model Predictive Control (\doxylink{class_m_p_c}{MPC}) controller based on Quadratic Programming using the qp\+OASES solver. 
+
+This library allows the use of different \doxylink{class_m_p_c}{MPC} formulations:\+
+\begin{DoxyItemize}
+\item Classic \doxylink{class_m_p_c}{MPC}
+\item \doxylink{class_m_p_c}{MPC} with linear parameterization (trivial)
+\item \doxylink{class_m_p_c}{MPC} with exponential parameterization 
+\end{DoxyItemize}
+
+\label{doc-define-members}
+\Hypertarget{_m_p_c_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}\index{MPC.h@{MPC.h}!N@{N}}
+\index{N@{N}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{N}{N}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4} 
+\+\#define N~33}
+
+
+
+\doxylink{class_m_p_c}{MPC} prediction horizon. 
+
+\Hypertarget{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720}\index{MPC.h@{MPC.h}!n@{n}}
+\index{n@{n}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{n}{n}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_ad5228cd48403ef9d8b632f5c7c124720} 
+\+\#define n~4}
+
+
+
+Number of states in the system. 
+
+\Hypertarget{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c}\index{MPC.h@{MPC.h}!nA@{nA}}
+\index{nA@{nA}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nA}{nA}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_aea2eef32d41eb85006a6286e76fc704c} 
+\+\#define nA~(2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}{nc}} + 2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})}
+
+
+
+Total number of constraints in the original problem. 
+
+\Hypertarget{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b}\index{MPC.h@{MPC.h}!nAr@{nAr}}
+\index{nAr@{nAr}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nAr}{nAr}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_aed92bb2546cb0966c32808398ec3904b} 
+\+\#define n\+Ar~(2\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}{nc}} + 4\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})}
+
+
+
+Total number of constraints in the parameterized problem. 
+
+\Hypertarget{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15}\index{MPC.h@{MPC.h}!nc@{nc}}
+\index{nc@{nc}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nc}{nc}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_a0845b4b004824f1fe3cd69db1672fa15} 
+\+\#define nc~1}
+
+
+
+Number of restricted exits. 
+
+\Hypertarget{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79}\index{MPC.h@{MPC.h}!np@{np}}
+\index{np@{np}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{np}{np}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_a2bae77253fba36eb9bf93d4c45e4ff79} 
+\+\#define np~(\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}{nre}})}
+
+
+
+Total number of decision variables in the parameterized system. 
+
+\Hypertarget{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e}\index{MPC.h@{MPC.h}!nre@{nre}}
+\index{nre@{nre}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nre}{nre}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_ab9fc879a71bf7985f585a8d8d5660a7e} 
+\+\#define nre~3}
+
+
+
+Number of parameters for exponential and trivial parameterization. 
+
+\Hypertarget{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43}\index{MPC.h@{MPC.h}!nU@{nU}}
+\index{nU@{nU}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nU}{nU}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_afe636ddd6896a0f288ceb2305c658b43} 
+\+\#define nU~(\doxymbox{\hyperlink{_m_p_c_8h_a0240ac851181b84ac374872dc5434ee4}{N}}\texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}{nu}})}
+
+
+
+Total number of decision variables. 
+
+\Hypertarget{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e}\index{MPC.h@{MPC.h}!nu@{nu}}
+\index{nu@{nu}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{nu}{nu}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_afb4f6a43e11280d3bad3b676d0f1478e} 
+\+\#define nu~1}
+
+
+
+Number of inputs (control signals). 
+
+\Hypertarget{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068}\index{MPC.h@{MPC.h}!ny@{ny}}
+\index{ny@{ny}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{ny}{ny}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_af50d69158019ca2b0261d76bc7a0e068} 
+\+\#define ny~2}
+
+
+
+Number of regulated outputs. 
+
+
+
+\label{doc-enum-members}
+\Hypertarget{_m_p_c_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}\index{MPC.h@{MPC.h}!MPCForm@{MPCForm}}
+\index{MPCForm@{MPCForm}!MPC.h@{MPC.h}}
+\doxysubsubsection{\texorpdfstring{MPCForm}{MPCForm}}
+{\footnotesize\ttfamily \label{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc} 
+enum class \doxymbox{\hyperlink{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebc}{MPCForm}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Types of formulations available for the \doxylink{class_m_p_c}{MPC}. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CLASSIC@{CLASSIC}!MPC.h@{MPC.h}}
+\index{MPC.h@{MPC.h}!CLASSIC@{CLASSIC}}
+}\Hypertarget{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca21994d6177b29e1128b2d7f0f8342057}\label{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca21994d6177b29e1128b2d7f0f8342057} 
+CLASSIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LINEAR@{LINEAR}!MPC.h@{MPC.h}}
+\index{MPC.h@{MPC.h}!LINEAR@{LINEAR}}
+}\Hypertarget{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebcaaac544aacc3615aada24897a215f5046}\label{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebcaaac544aacc3615aada24897a215f5046} 
+LINEAR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXPONENCIAL@{EXPONENCIAL}!MPC.h@{MPC.h}}
+\index{MPC.h@{MPC.h}!EXPONENCIAL@{EXPONENCIAL}}
+}\Hypertarget{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca4344a80408fcfc22bac257e45ba07e81}\label{_m_p_c_8h_a80561cd2b2f634766a1d0d9a1657bebca4344a80408fcfc22bac257e45ba07e81} 
+EXPONENCIAL&\\
+\hline
+
+\end{DoxyEnumFields}

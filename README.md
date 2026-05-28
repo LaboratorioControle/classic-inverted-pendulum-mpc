@@ -14,12 +14,20 @@ Localizado na raiz e nas pastas `analysis/`, `controllers/`, `models/`, `params/
 - **Identificação:** Scripts para estimativa de parâmetros físicos (atrito, inércia, constantes do motor) baseados em dados experimentais.
 - **Simulação de Controle:** Implementações de controladores **LQR**, **Swing-up (Energia)** e **MPC** (com suporte a parametrização linear e restrições via qpOASES).
 
-### 2. Ambiente ESP32 (Firmware Embarcado)
+### 2. Ambiente ESP32
 Localizado na pasta `ESP32/MPC_Inverted_Pendulum/`.
 - **Controle em Tempo Real:** Implementação de uma biblioteca de controle híbrido em C++.
 - **MPC Embarcado:** Uso da biblioteca `qpOASES` para resolver o problema de programação quadrática (QP) diretamente no microcontrolador.
 - **Estratégias de Parametrização:** Suporte para formulações de MPC Clássico, Linear e Exponencial, visando reduzir o esforço computacional.
 - **Periféricos:** Leitura de encoders, controle de motor via PWM, e interface com display OLED.
+
+---
+
+## 📚 Documentação (Doxygen)
+
+A documentação interativa do firmware ESP32 está disponível em:
+
+🔗 https://github.com/LaboratorioControle/classic-inverted-pendulum-mpc/blob/main/ESP32/MPC_Inverted_Pendulum/docs/html/index.html
 
 ---
 
