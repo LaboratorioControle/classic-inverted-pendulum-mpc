@@ -25,9 +25,11 @@ Localizado na pasta `ESP32/MPC_Inverted_Pendulum/`.
 
 ## 📚 Documentação (Doxygen)
 
-A documentação interativa do firmware ESP32 está disponível em:
+A documentação interativa da Classe MPC implementada pode acessada por meio do Link:
 
-🔗 https://github.com/LaboratorioControle/classic-inverted-pendulum-mpc/blob/main/ESP32/MPC_Inverted_Pendulum/docs/html/index.html
+🌐 [Documentação Completa](https://laboratoriocontrole.github.io/classic-inverted-pendulum-mpc/)
+
+> A documentação é gerada automaticamente com Doxygen e publicada via GitHub Pages.
 
 ---
 
