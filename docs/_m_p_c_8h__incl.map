@@ -1,0 +1,13 @@
+<map id="lib/MPC/MPC.h" name="lib/MPC/MPC.h">
+<area shape="rect" id="Node000001" title="Implementation of a Model Predictive Control (MPC) controller based on Quadratic Programming using th..." alt="" coords="114,5,227,32"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,80,112,107"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,35,92,73,89,69,153,30"/>
+<area shape="rect" id="Node000003" href="$_matrix_8h.html" title=" " alt="" coords="136,80,205,107"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="172,30,173,65,168,63,169,35"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="229,80,379,107"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="194,30,270,72,265,73,193,35"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="96,155,154,181"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="165,106,143,143,139,139,160,109"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="178,155,254,181"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="180,105,202,142,197,141,177,110"/>
+</map>

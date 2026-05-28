@@ -17,6 +17,13 @@
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -242,14 +249,14 @@ Public Attributes</h2></td></tr>
 <p>Generate an identity matrix. </p>
 <p>Creates a square matrix where diagonal elements are 1 and all other elements are 0.</p>
 <p class="formulaDsp">
-<picture><source srcset="form_3_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[I =
+\[I =
 \begin{bmatrix}
 1 &amp; 0 &amp; \dots &amp; 0 \\
 0 &amp; 1 &amp; \dots &amp; 0 \\
 \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
 0 &amp; 0 &amp; \dots &amp; 1
 \end{bmatrix}
-\&zwj;]" src="form_3.png"/></picture>
+\]
 </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -342,13 +349,13 @@ Public Attributes</h2></td></tr>
 <p><a class="el" href="class_matrix.html" title="Lightweight dynamic matrix class for embedded systems.">Matrix</a> multiplication. </p>
 <p>Computes the product:</p>
 <p class="formulaDsp">
-<picture><source srcset="form_5_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[C = A \cdot B
-\&zwj;]" src="form_5.png"/></picture>
+\[C = A \cdot B
+\]
 </p>
 <p>Dimensions must satisfy:</p>
 <p class="formulaDsp">
-<picture><source srcset="form_6_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[A_{r \times c} \cdot B_{c \times k}
-\&zwj;]" src="form_6.png"/></picture>
+\[A_{r \times c} \cdot B_{c \times k}
+\]
 </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -562,8 +569,8 @@ Public Attributes</h2></td></tr>
 <p>Scalar-matrix multiplication. </p>
 <p>Computes:</p>
 <p class="formulaDsp">
-<picture><source srcset="form_7_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[B = sA
-\&zwj;]" src="form_7.png"/></picture>
+\[B = sA
+\]
 </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -602,8 +609,8 @@ Public Attributes</h2></td></tr>
 <p>Compute the transpose of a matrix. </p>
 <p>The transpose swaps rows and columns:</p>
 <p class="formulaDsp">
-<picture><source srcset="form_4_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[A^T_{ij} = A_{ji}
-\&zwj;]" src="form_4.png"/></picture>
+\[A^T_{ij} = A_{ji}
+\]
 </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -686,8 +693,8 @@ Public Attributes</h2></td></tr>
 <p><a class="el" href="class_matrix.html" title="Lightweight dynamic matrix class for embedded systems.">Matrix</a> data stored in row-major order. </p>
 <p>Element (i,j) is stored at index:</p>
 <p class="formulaDsp">
-<picture><source srcset="form_2_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\&zwj;[index = i \cdot c + j
-\&zwj;]" src="form_2.png"/></picture>
+\[index = i \cdot c + j
+\]
 </p>
  
 </div>

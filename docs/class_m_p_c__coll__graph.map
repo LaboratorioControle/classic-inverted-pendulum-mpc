@@ -1,0 +1,5 @@
+<map id="MPC" name="MPC">
+<area shape="rect" id="Node000001" title="Class responsible for implementing the MPC controller." alt="" coords="8,317,60,344"/>
+<area shape="rect" id="Node000002" href="$class_matrix.html" title="Lightweight dynamic matrix class for embedded systems." alt="" coords="5,5,63,32"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="37,48,37,317,31,317,31,48"/>
+</map>
