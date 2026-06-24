@@ -93,7 +93,7 @@ float K_swing_pos = 8;
 // Limiares de troca
 const float THETA_SWITCH = 15 * PI/180.0;       
 const float THETA_DOT_SWITCH = 100 * PI/180.0;  
-const float FIM_CURSO_VIRTUAL =  16.5/100.0; 
+const float FIM_CURSO_VIRTUAL =  17.5/100.0; 
 
 // Setpoint posição
 float set_point_x = 0.0;
@@ -110,8 +110,8 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::CLASSIC, 10);
-float pos_limite = 18.0/100.0;
+MPC mpc = MPC(MPCForm::EXPONENCIAL, 8);
+float pos_limite = 20.0/100.0;
 float ang_limite = 15.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
 float comando_limite = 12.0;
@@ -332,7 +332,11 @@ void gerarTrajetoriaSeno(float duracao_trajetoria, float Ts) {
 
         float t = i * Ts;
 
-        float ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+        float ref_x = 0;
+
+        if (t > 10){
+          ref_x = ref_offset + ref_amp * sinf(2 * PI * ref_freq * t);
+        }
 
         yref_global[i * 2 + 0] = ref_x; // posição
         yref_global[i * 2 + 1] = 0.0f;  // ângulo
@@ -481,13 +485,13 @@ void setupMPC(){
 
 
   // Método Clássico
-  mpc.compute_MPC_Matrices();
+  //mpc.compute_MPC_Matrices();
 
   // Parametrização Exponencial
-  // float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
-  // float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
-  // float tau = PERIODO/1000;
-  // mpc.compute_MPC_Matrices(lambda, alpha, tau);
+  float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
+  float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
+  float tau = PERIODO/1000;
+  mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
