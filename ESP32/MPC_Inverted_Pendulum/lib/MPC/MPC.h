@@ -18,7 +18,7 @@
 
 
 /// MPC prediction horizon
-#define N 33
+#define N 35
 
 /// Number of states in the system
 #define n 4 
@@ -33,7 +33,7 @@
 #define nu 1
 
 /// Number of parameters for exponential and trivial parameterization
-#define nre 3
+#define nre 5
 
 /// Total number of decision variables in the parameterized system.
 #define np (nu*nre) 
@@ -176,7 +176,7 @@ public:
     int get_solver_result_code() const { return solver_result_code; }
 
        /**
-     * @brief Generates the reference trajectory over the prediction horizon.
+     * @brief Selects the reference trajectory over the prediction horizon.
      *
      * This function builds the reference vector used by the MPC controller
      * along the prediction horizon. The reference trajectory is constructed
@@ -188,7 +188,7 @@ public:
      * @param idx_atual Current index in the global reference trajectory.
      * @param usar_trajetoria Flag indicating whether to use the global trajectory.
      */
-    void generate_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria);
+    void select_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria);
 
     private:
     

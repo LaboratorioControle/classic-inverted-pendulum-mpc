@@ -110,7 +110,7 @@ bool comboDetectado = false;
 // VARIÁVEIS DO CONTROLE MPC
 // ==============================
 volatile bool controleMPCAtivo = false;
-MPC mpc = MPC(MPCForm::EXPONENCIAL, 8);
+MPC mpc = MPC(MPCForm::LINEAR, 4);
 float pos_limite = 20.0/100.0;
 float ang_limite = 15.0 * (PI/180.0);
 float vel_limite = 50.0/100.0;
@@ -480,18 +480,18 @@ void setupMPC(){
   // =========================
 
   // Parametrização LINEAR
-  //  float pontos[5] = {1, 7, 14, 21, 28};
-  //  mpc.compute_MPC_Matrices(pontos);
+    float pontos[5] = {1, 7, 14, 21, 28};
+    mpc.compute_MPC_Matrices(pontos);
 
 
   // Método Clássico
   //mpc.compute_MPC_Matrices();
 
   // Parametrização Exponencial
-  float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
-  float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
-  float tau = PERIODO/1000;
-  mpc.compute_MPC_Matrices(lambda, alpha, tau);
+  //float lambda[1] = {0.2f}; // Diretamente proporcional ao tempo de caimento
+  //float alpha = 0.5f; // Aumenta a diversidade das exponenciais (tempo de caimento mais variado)
+  //float tau = PERIODO/1000;
+  //mpc.compute_MPC_Matrices(lambda, alpha, tau);
 }
 
 void controleEstadoMPC() {
@@ -509,8 +509,8 @@ void controleEstadoMPC() {
     float spt[2] = {set_point_x / 100.0f, 0.0f};
 
     unsigned long tempo_inicio = micros();
-    //mpc.generate_yref(spt, NULL, 0, false);
-    mpc.generate_yref(NULL, yref_global, idx_traj, true);
+    mpc.select_yref(spt, NULL, 0, false);
+    //mpc.select_yref(NULL, yref_global, idx_traj, true);
     u = mpc.compute_MPC_Command(ulast, estados)[0];
 
     unsigned long tempo_fim = micros();
@@ -535,9 +535,9 @@ void controleEstadoMPC() {
     u = constrain(u, -12.0, 12.0);
   }
 
-  idx_traj++;
-    if (idx_traj >= nt)
-        idx_traj = nt - 1;
+  //idx_traj++;
+  //  if (idx_traj >= nt)
+  //      idx_traj = nt - 1;
 
   ulast = u;
   float u_pwm = (u / 12.0) * 255.0;
@@ -560,8 +560,8 @@ void desativaControladorMPC(){
 void ativaControladorMPC(){
   controleMPCAtivo = true;
 
-  idx_traj = 0;
-  gerarTrajetoriaSeno(35.0f, PERIODO / 1000.0f);
+  //idx_traj = 0;
+  //gerarTrajetoriaSeno(35.0f, PERIODO / 1000.0f);
 
   if (theta <= 1e-2) {
     ledcWrite(1, 100);
@@ -1051,7 +1051,7 @@ void setup() {
   // Cria tarefa FreeRTOS
   xTaskCreatePinnedToCore(taskLeitura, "TaskLeitura", 4096, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(taskDisplay, "TaskDisplay", 4096, NULL, 1, NULL, 0);
-  //xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(taskSerialRx,   "TaskSerialRx", 2048, NULL, 1, NULL, 0);
   xTaskCreatePinnedToCore(taskSerialTx, "TaskSerialTx", 4096, NULL, 1, NULL, 0);  
 }
 

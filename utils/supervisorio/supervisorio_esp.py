@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.create_sine_command_group())
         
         # Controlador LQR
-        left_layout.addWidget(self.create_lqr_command_group())
+        # left_layout.addWidget(self.create_lqr_command_group())
         
         # Console de mensagens
         left_layout.addWidget(self.create_console_group())

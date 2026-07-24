@@ -37,6 +37,18 @@ t_ini_list = [3.7, 3.71, 5.24]; % um valor para cada arquivo
 % 
 % t_ini_list = [4.18, 3.19, 3.18]; % um valor para cada arquivo
 
+
+% arquivos = {
+%     'data/raw/Classic/dados_esp32_20260323_SwingUp.csv'
+%     'data/raw/Linear/dados_esp32_20260330_SwingUp.csv'
+%     'data/raw/Exponencial/dados_esp32_20260323_SwingUp.csv'
+% 
+%     };
+% 
+% nomes = {'MPC Clássico', 'MPC Par. Trivial', 'MPC Par. Exponencial'};
+% 
+% t_ini_list = [0, 0, 1.2]; % um valor para cada arquivo
+
 n_ctrl = length(arquivos);
 
 pos_limite = 0.20;
@@ -74,9 +86,15 @@ for i = 1:n_ctrl
     
     dados(i).u = data.u(idx);
     dados(i).yref = data.yref(idx);
+    dados(i).yref = zeros(size(data.yref(idx)));
+
+    rmse_var(i) = rmse(dados(i).yref,dados(i).pos);
+    J_var(i) = sum((dados(i).u).^2);
     
     dados(i).tempo = data.tempo_computacional(idx)/1000; % ms
     dados(i).erro = data.cod_erro(idx);
+
+    qtdErro_var(i) = sum(dados(i).erro ~= -1 & dados(i).erro ~= 0);
 end
 
 %% ===================== ESTADOS =====================
@@ -106,7 +124,8 @@ subplot(2,2,2); hold on; grid on;
 title('Ângulo (°) / 360°');
 xlabel('Tempo (s)');
 
-valores = [0.5 -0.5 1.5 2.5 -1.5];
+%valores = [0.5 -0.5 1.5 2.5 -1.5];
+valores = [0.5 -0.5];
 for v = valores
     h = yline(v, '--', 'Color', [0.7 0.7 0.7], 'LineWidth', 0.8);
 end
@@ -195,11 +214,19 @@ for i = 1:n_ctrl
     tempo_plot(erro == -1) = NaN;
     
     plot(t, tempo_plot, 'LineWidth', 1.2);
+
+
+    pico_manual  = [16.88, 6.56, 14.81];  % ms
+
+   
     
     % MÉTRICAS (só pontos válidos)
     idx_ok = erro ~= -1;
     media = mean(tempo(idx_ok));
     pico = max(tempo(idx_ok));
+
+    % media = media_manual(i);
+    %pico  = pico_manual(i);
     
     legendas{end+1} = sprintf('%s (μ=%.2f ms, pico=%.2f ms)', ...
                              nomes{i}, media, pico);
@@ -209,3 +236,4 @@ legend(legendas, 'Location','best');
 
 ylim([0, 25]);
 xlim([0, xlimite]);
+yline(10, '--', 'HandleVisibility', 'off');

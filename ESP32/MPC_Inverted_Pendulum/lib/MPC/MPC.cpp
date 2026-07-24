@@ -393,7 +393,7 @@ void MPC::compute_Pi_e(float* lambda, float alpha, float tau){
     }
 }
 
-void MPC::generate_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria) {
+void MPC::select_yref(const float* spt, const float* yref_global, int idx_atual, bool usar_trajetoria) {
 
     if (!usar_trajetoria) {
         // 🔹 MODO ANTIGO (constante)

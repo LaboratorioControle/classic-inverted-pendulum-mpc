@@ -82,7 +82,7 @@ MPC = compute_MPC_Matrices(MPC);
 par.lambda = 0.5;
 par.ne = 3; % Número de exponenciais para cada atuador (Matriz coluna)
 par.tau = tau;
-par.alpha = 0.5;
+par.alpha = 10;
 par.N = MPC.N;
 %--------------------------
 

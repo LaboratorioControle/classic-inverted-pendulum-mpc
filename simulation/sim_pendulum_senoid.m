@@ -125,6 +125,7 @@ R2_ang = calc_R2(angulo_import, ang_sim_interp)
 R2_vel = calc_R2(velocidade_import, vel_sim_interp)
 R2_vel_ang = calc_R2(vel_angular_import, vel_ang_sim_interp)
 
+R2 = [R2_pos, R2_ang, R2_vel, R2_vel_ang];
 
 %% PLOT DOS RESULTADOS (DINÂMICO)
 
@@ -134,7 +135,7 @@ set(gcf, 'Units', 'centimeters', 'Position', [5 5 20 15])
 
 % ===================== POSIÇÃO DO CARRINHO =====================
 subplot(2,2,1); hold on; grid on;
-title('Posição do Carro (cm)');
+title(sprintf("Posição do Carro (cm) - R^2=%.4f", R2(1)));
 %title(sprintf('Posição do Carro (cm) - R² = %.3f', R2_pos));
 xlabel('Tempo (s)');
 xlim([0, xlimite]);
@@ -157,7 +158,7 @@ legend(legend_entries);
 
 % ===================== ÂNGULO DO PÊNDULO =====================
 subplot(2,2,2); hold on; grid on;
-title('Ângulo (°)');
+title(sprintf("Ângulo (°) - R^2=%.4f", R2(2)));
 xlabel('Tempo (s)');
 xlim([0, xlimite]);
 ylim([-70,70]);
@@ -176,7 +177,7 @@ end
 
 % ===================== VELOCIDADE DO CARRINHO =====================
 subplot(2,2,3); hold on; grid on;
-title('Velocidade (cm/s)');
+title(sprintf("Velocidade (cm/s) - R^2=%.4f", R2(3)));
 xlabel('Tempo (s)');
 xlim([0, xlimite]);
 
@@ -190,11 +191,11 @@ if plot_discreto
     stairs(t, x(:,3), 'LineWidth', 1);
 end
 
-%legend(legend_entries);
+legend(legend_entries);
 
 % ===================== VELOCIDADE ANGULAR =====================
 subplot(2,2,4); hold on; grid on;
-title('Velocidade Angular (°/s)');
+title(sprintf("Velocidade Angular (°/s) - R^2=%.4f", R2(4)));
 xlabel('Tempo (s)');
 xlim([0, xlimite]);
 
